@@ -94,10 +94,6 @@ void Camera::OnResize(uint32_t width, uint32_t height) {
 	RecalculateRayDirections();
 }
 
-float Camera::GetRotationSpeed() {
-	return m_RotationSpeed;
-}
-
 void Camera::RecalculateProjection() {
 	m_Projection = glm::perspectiveFov(glm::radians(m_VerticalFOV), (float)m_ViewportWidth, (float)m_ViewportHeight, m_NearClip, m_FarClip);
 	m_InverseProjection = glm::inverse(m_Projection);

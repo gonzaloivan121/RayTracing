@@ -2,6 +2,8 @@
 
 #include "Walnut/Random.h"
 
+#include <execution>
+
 namespace Utils {
 	static uint32_t ConvertToRGBA(const glm::vec4& color) {
 		uint8_t r = (uint8_t)(color.r * 255.0f);
@@ -10,6 +12,25 @@ namespace Utils {
 		uint8_t a = (uint8_t)(color.a * 255.0f);
 
 		return (a << 24) | (b << 16) | (g << 8) | r;
+	}
+
+	static uint32_t PCH_Hash(uint32_t input) {
+		uint32_t state = input * 747796405u + 2891336453u;
+		uint32_t word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+		return (word >> 22u) ^ word;
+	}
+
+	static float RandomFloat(uint32_t& seed) {
+		seed = PCH_Hash(seed);
+		return (float)seed / (float)std::numeric_limits<uint32_t>::max();
+	}
+
+	static glm::vec3 RandomInUnitSphere(uint32_t& seed) {
+		return glm::normalize(glm::vec3(
+			RandomFloat(seed) * 2.0f - 1.0f,
+			RandomFloat(seed) * 2.0f - 1.0f,
+			RandomFloat(seed) * 2.0f - 1.0f
+		));
 	}
 }
 
@@ -27,21 +48,64 @@ void Renderer::OnResize(uint32_t width, uint32_t height) {
 
 	delete[] m_ImageData;
 	m_ImageData = new uint32_t[width * height];
+	
+	delete[] m_AccumulationData;
+	m_AccumulationData = new glm::vec4[width * height];
+
+	m_ImageHorizontalIterator.resize(width);
+	m_ImageVerticalIterator.resize(height);
+
+	for (uint32_t i = 0; i < width; i++) {
+		m_ImageHorizontalIterator[i] = i;
+	}
+
+	for (uint32_t i = 0; i < height; i++) {
+		m_ImageVerticalIterator[i] = i;
+	}
+
+	ResetFrameIndex();
 }
 
 void Renderer::Render(const Scene& scene, const Camera& camera) {
 	m_ActiveScene = &scene;
 	m_ActiveCamera = &camera;
 
-	for (uint32_t y = 0; y < m_FinalImage->GetHeight(); y++) {
-		for (uint32_t x = 0; x < m_FinalImage->GetWidth(); x++) {
-			glm::vec4 color = RayGen(x, y);
-			color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
-			m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(color);
+	if (m_FrameIndex == 1) {
+		memset(m_AccumulationData, 0, m_FinalImage->GetWidth() * m_FinalImage->GetHeight() * sizeof(glm::vec4));
+	}
+
+	if (m_Settings.Multithreading) {
+		std::for_each(std::execution::par, m_ImageVerticalIterator.begin(), m_ImageVerticalIterator.end(), [this](uint32_t y) {
+			std::for_each(std::execution::par, m_ImageHorizontalIterator.begin(), m_ImageHorizontalIterator.end(), [this, y](uint32_t x) {
+				Accumulate(x, y);
+			});
+		});
+	} else {
+		for (uint32_t y = 0; y < m_FinalImage->GetHeight(); y++) {
+			for (uint32_t x = 0; x < m_FinalImage->GetWidth(); x++) {
+				Accumulate(x, y);
+			}
 		}
 	}
 
 	m_FinalImage->SetData(m_ImageData);
+
+	if (m_Settings.Accumulate) {
+		m_FrameIndex++;
+	} else {
+		ResetFrameIndex();
+	}
+}
+
+void Renderer::Accumulate(const uint32_t& x, const uint32_t& y) {
+	glm::vec4 color = RayGen(x, y);
+	m_AccumulationData[x + y * m_FinalImage->GetWidth()] += color;
+
+	glm::vec4 accumulatedColor = m_AccumulationData[x + y * m_FinalImage->GetWidth()];
+	accumulatedColor /= (float)m_FrameIndex;
+
+	accumulatedColor = glm::clamp(accumulatedColor, glm::vec4(0.0f), glm::vec4(1.0f));
+	m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(accumulatedColor);
 }
 
 glm::vec4 Renderer::RayGen(uint32_t x, uint32_t y) {
@@ -49,33 +113,46 @@ glm::vec4 Renderer::RayGen(uint32_t x, uint32_t y) {
 	ray.Origin = m_ActiveCamera->GetPosition();
 	ray.Direction = m_ActiveCamera->GetRayDirections()[x + y * m_FinalImage->GetWidth()];
 
-	glm::vec3 color(0.0f);
-	float multiplier = 1.0f;
+	glm::vec3 light(0.0f);
+	glm::vec3 contribution(1.0f);
 
-	int bounces = 2;
+	uint32_t seed = x + y * m_FinalImage->GetWidth();
+	seed *= m_FrameIndex;
+
+	int bounces = 50;
 	for (int i = 0; i < bounces; i++) {
+		seed += i;
+
 		Renderer::HitPayload payload = TraceRay(ray);
 
 		if (payload.HitDistance < 0.0f) {
-			glm::vec3 skyColor = Color::Black;
-			color += skyColor * multiplier;
+			glm::vec3 skyColor = glm::vec3(0.6f, 0.7f, 0.9f);
+			//light += skyColor * contribution;
 			break;
 		}
 
 		glm::vec3 lightDirection = glm::normalize(m_ActiveScene->Light.Direction);
 		float lightIntensity = glm::max(glm::dot(payload.WorldNormal, -lightDirection), 0.0f); // == cos(angle)
 		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
+		const Material& material = m_ActiveScene->Materials[sphere.MaterialIndex];
 
-		glm::vec3 sphereColor = sphere.Material.Albedo * lightIntensity;
-		color += sphereColor * multiplier;
+		//glm::vec3 sphereColor = material.Albedo * lightIntensity;
+		//color += sphereColor * multiplier;
 
-		multiplier *= 0.7f;
+		contribution *= material.Albedo;
+		light += material.GetEmission();
 
 		ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
-		ray.Direction = glm::reflect(ray.Direction, payload.WorldNormal);
+		//ray.Direction = glm::reflect(ray.Direction, payload.WorldNormal + material.Roughness * Walnut::Random::Vec3(-0.5f, 0.5f));
+
+		if (m_Settings.PCHRandom) {
+			ray.Direction = glm::normalize(payload.WorldNormal + Utils::RandomInUnitSphere(seed));
+		} else {
+			ray.Direction = glm::normalize(payload.WorldNormal + Walnut::Random::InUnitSphere());
+		}
 	}
 
-	return { color, 1.0f };
+	return { light, 1.0f };
 }
 
 Renderer::HitPayload Renderer::TraceRay(const Ray& ray) {

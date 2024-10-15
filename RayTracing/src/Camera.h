@@ -20,7 +20,11 @@ public:
 
 	const std::vector<glm::vec3>& GetRayDirections() const { return m_RayDirections; }
 
-	float GetRotationSpeed();
+	float& GetVerticalFOV() { return m_VerticalFOV; }
+	float& GetNearClip() { return m_NearClip; }
+	float& GetFarClip() { return m_FarClip; }
+
+	float& GetRotationSpeed() { return m_RotationSpeed; }
 private:
 	void RecalculateProjection();
 	void RecalculateView();
