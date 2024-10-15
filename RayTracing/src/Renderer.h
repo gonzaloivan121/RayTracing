@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "Ray.h"
 #include "Scene.h"
+#include "Color.h"
 
 #include <memory>
 #include <glm/glm.hpp>
@@ -18,8 +19,24 @@ public:
 
 	std::shared_ptr<Walnut::Image> GetFinalImage() const { return m_FinalImage; }
 private:
-	glm::vec4 TraceRay(const Scene& scene, const Ray& ray);
+	struct HitPayload {
+		float HitDistance;
+		glm::vec3 WorldPosition;
+		glm::vec3 WorldNormal;
+
+		int ObjectIndex;
+	};
+
+	glm::vec4 RayGen(uint32_t x, uint32_t y); // PerPixel
+
+	HitPayload TraceRay(const Ray& ray);
+	HitPayload ClosestHit(const Ray& ray, float hitDistance, int objectIndex);
+	HitPayload Miss(const Ray& ray);
 private:
 	std::shared_ptr<Walnut::Image> m_FinalImage;
+
+	const Scene* m_ActiveScene = nullptr;
+	const Camera* m_ActiveCamera = nullptr;
+
 	uint32_t* m_ImageData = nullptr;
 };

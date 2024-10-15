@@ -18,14 +18,17 @@ public:
 	RayTracingLayer() : m_Camera(45.0f, 0.1f, 1000.0f) {
 		{
 			Sphere sphere;
+			sphere.Position = { 0.0f, 0.0f, 0.0f };
+			sphere.Radius = 1.0f;
+			sphere.Material.Albedo = Color::Magenta;
 			m_Scene.Spheres.push_back(sphere);
 		}
 
 		{
 			Sphere sphere;
-			sphere.Position = { 1.0f, 0.0f, -5.0f };
-			sphere.Radius = 1.5f;
-			sphere.Albedo = Color::Blue;
+			sphere.Position = { 0.0f, -101.0f, 0.0f };
+			sphere.Radius = 100.0f;
+			sphere.Material.Albedo = Color::Blue;
 			m_Scene.Spheres.push_back(sphere);
 		}
 
@@ -43,11 +46,13 @@ public:
 		ImGui::End();
 
 		ImGui::Begin("Scene");
-		ImGui::DragFloat3("Light Position", glm::value_ptr(m_Scene.Light.Position), 0.01f);
+		ImGui::Text("Light:");
+		ImGui::DragFloat3("Light Direction", glm::value_ptr(m_Scene.Light.Direction), 0.01f);
 
 		ImGui::Spacing();
 		ImGui::Separator();
 		ImGui::Spacing();
+		ImGui::Text("Spheres:");
 
 		for (size_t i = 0; i < m_Scene.Spheres.size(); i++) {
 			ImGui::PushID(i);
@@ -55,7 +60,9 @@ public:
 			Sphere& sphere = m_Scene.Spheres[i];
 			ImGui::DragFloat3("Sphere Position", glm::value_ptr(sphere.Position), 0.01f);
 			ImGui::DragFloat("Sphere Radius", &sphere.Radius, 0.01f);
-			ImGui::ColorEdit3("Sphere Albedo", glm::value_ptr(sphere.Albedo));
+			ImGui::ColorEdit3("Sphere Albedo", glm::value_ptr(sphere.Material.Albedo));
+			ImGui::SliderFloat("Sphere Rougness", &sphere.Material.Roughness, 0.0f, 1.0f);
+			ImGui::SliderFloat("Sphere Metallic", &sphere.Material.Metallic, 0.0f, 1.0f);
 			ImGui::Spacing();
 
 			ImGui::PopID();
