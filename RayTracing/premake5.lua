@@ -17,11 +17,18 @@ project "RayTracing"
 
       "%{IncludeDir.VulkanSDK}",
       "../Walnut/vendor/glm",
+
+      "../Walnut/vendor/yaml-cpp/include",
+   }
+
+   defines {
+      "YAML_CPP_STATIC_DEFINE"
    }
 
    links
    {
-      "Walnut"
+      "Walnut",
+      "yaml-cpp"
    }
 
    targetdir ("../bin/" .. outputdir .. "/%{prj.name}")

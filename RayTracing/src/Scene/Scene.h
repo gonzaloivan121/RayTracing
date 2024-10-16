@@ -1,10 +1,11 @@
 #pragma once
 
-#include "Color.h"
+#include "../Utils/Color.h"
 
 #include <glm/glm.hpp>
 
 #include <vector>
+#include <string>
 
 struct Light {
 	glm::vec3 Direction{ -1.0f };
@@ -28,9 +29,9 @@ struct Sphere {
 };
 
 struct Scene {
-	std::string Name = "Scene";
+	std::string Name = "Default";
 
 	std::vector<Sphere> Spheres;
 	std::vector<Material> Materials;
-	Light Light;
+	std::vector<Light> Lights;
 };

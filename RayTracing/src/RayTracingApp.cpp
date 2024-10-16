@@ -6,9 +6,10 @@
 #include "Walnut/Random.h"
 #include "Walnut/Timer.h"
 
-#include "Renderer.h"
-#include "Camera.h"
-#include "Color.h"
+#include "Renderer/Renderer.h"
+#include "Scene/Camera.h"
+#include "Utils/Color.h"
+#include "Scene/SceneSerializer.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -58,13 +59,12 @@ public:
 			m_Scene.Spheres.push_back(sphere);
 		}
 
-		Light light;
-		m_Scene.Light = light;
+		m_Scene.Lights.emplace_back();
 	}
 
 	virtual void OnUpdate(float ts) override {
 		if (m_Camera.OnUpdate(ts)) {
-			m_Renderer.ResetFrameIndex();
+			ResetFrameIndex();
 		}
 	}
 
@@ -84,7 +84,7 @@ public:
 		ImGui::EndChild();
 
 		if (ImGui::Button("Reset Accumulation")) {
-			m_Renderer.ResetFrameIndex();
+			ResetFrameIndex();
 		}
 		ImGui::End();
 
@@ -92,9 +92,26 @@ public:
 
 		// Light
 		ImGui::Text("Light");
-		ImGui::BeginChild("Light", ImVec2(0, 52), true);
-		ImGui::DragFloat3("Direction", glm::value_ptr(m_Scene.Light.Direction), 0.01f);
-		ImGui::EndChild();
+		ImGui::SameLine();
+		Walnut::UI::ShiftCursorX(ImGui::GetColumnWidth() - 50.0f);
+
+		if (ImGui::Button("Add##Light")) {
+			AddLight();
+		}
+
+		for (size_t i = 0; i < m_Scene.Lights.size(); i++) {
+			ImGui::PushID(i);
+
+			ImGui::BeginChild("Light", ImVec2(0, 90), true);
+			Light& light = m_Scene.Lights[i];
+			ImGui::DragFloat3("Direction", glm::value_ptr(light.Direction), 0.01f);
+			if (ImGui::Button("Remove", ImGui::GetContentRegionAvail())) {
+				RemoveLight(i);
+			}
+			ImGui::EndChild();
+
+			ImGui::PopID();
+		}
 
 		ImGui::Spacing();
 		ImGui::Separator();
@@ -125,6 +142,7 @@ public:
 			ImGui::PopID();
 		}
 
+		ImGui::Spacing();
 		ImGui::Separator();
 		ImGui::Spacing();
 
@@ -155,9 +173,6 @@ public:
 			ImGui::PopID();
 		}
 
-		ImGui::Separator();
-		ImGui::Spacing();
-
 		ImGui::End();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -182,20 +197,34 @@ public:
 		Render();
 	}
 
+	void AddLight() {
+		m_Scene.Lights.emplace_back();
+		ResetFrameIndex();
+	}
+
+	void RemoveLight(size_t& index) {
+		m_Scene.Lights.erase(m_Scene.Lights.begin() + index);
+		ResetFrameIndex();
+	}
+
 	void AddSphere() {
 		m_Scene.Spheres.emplace_back();
+		ResetFrameIndex();
 	}
 
 	void RemoveSphere(size_t& index) {
 		m_Scene.Spheres.erase(m_Scene.Spheres.begin() + index);
+		ResetFrameIndex();
 	}
 
 	void AddMaterial() {
 		m_Scene.Materials.emplace_back();
+		ResetFrameIndex();
 	}
 
 	void RemoveMaterial(size_t& index) {
 		m_Scene.Materials.erase(m_Scene.Materials.begin() + index);
+		ResetFrameIndex();
 	}
 
 	void UI_DrawAboutModal() {
@@ -244,7 +273,18 @@ public:
 	}
 
 	void SaveScene() {
-		
+		SceneSerializer serializer(m_Scene);
+		serializer.Serialize(m_Scene.Name + ".yaml");
+	}
+
+	void LoadScene() {
+		SceneSerializer serializer(m_Scene);
+		serializer.Deserialize(m_Scene.Name + ".yaml");
+		ResetFrameIndex();
+	}
+
+	void ResetFrameIndex() {
+		m_Renderer.ResetFrameIndex();
 	}
 
 private:
@@ -261,6 +301,7 @@ private:
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
 	Walnut::ApplicationSpecification spec;
 	spec.Name = "Ray Tracing";
+	// https://tomeko.net/online_tools/file_to_hex.php?lang=en
 	spec.IconPath = "res/logo.png";
 	spec.CustomTitlebar = true;
 	spec.CenterWindow = true;
@@ -273,6 +314,9 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
 		if (ImGui::BeginMenu("File")) {
 			if (ImGui::MenuItem("Save")) {
 				rayTracingLayer->SaveScene();
+			}
+			if (ImGui::MenuItem("Load")) {
+				rayTracingLayer->LoadScene();
 			}
 			if (ImGui::MenuItem("Exit")) {
 				app->Close();

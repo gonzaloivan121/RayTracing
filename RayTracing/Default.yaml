@@ -1,0 +1,37 @@
+Scene:
+  Name: Default
+  Lights:
+    - Light:
+        Direction: [-1, -1, -1]
+  Spheres:
+    - Sphere:
+        Position: [-1, 0, 0]
+        Radius: 1
+        MaterialIndex: 0
+    - Sphere:
+        Position: [3000, 2000, -10000]
+        Radius: 1000
+        MaterialIndex: 2
+    - Sphere:
+        Position: [0, -101, 0]
+        Radius: 100
+        MaterialIndex: 1
+  Materials:
+    - Material:
+        Albedo: [1, 0, 1]
+        Roughness: 0
+        Metallic: 0
+        EmissionColor: [0, 0, 0]
+        EmissionPower: 0
+    - Material:
+        Albedo: [0, 0, 1]
+        Roughness: 0.100000001
+        Metallic: 0
+        EmissionColor: [0, 0, 0]
+        EmissionPower: 0
+    - Material:
+        Albedo: [0.800000012, 0.5, 0.200000003]
+        Roughness: 0.100000001
+        Metallic: 0
+        EmissionColor: [0.800000012, 0.5, 0.200000003]
+        EmissionPower: 1000

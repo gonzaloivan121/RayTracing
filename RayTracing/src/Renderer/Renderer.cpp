@@ -131,7 +131,7 @@ glm::vec4 Renderer::RayGen(uint32_t x, uint32_t y) {
 			break;
 		}
 
-		glm::vec3 lightDirection = glm::normalize(m_ActiveScene->Light.Direction);
+		glm::vec3 lightDirection = glm::normalize(m_ActiveScene->Lights[0].Direction);
 		// float lightIntensity = glm::max(glm::dot(payload.WorldNormal, -lightDirection), 0.0f); // == cos(angle)
 		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
 		const Material& material = m_ActiveScene->Materials[sphere.MaterialIndex];
