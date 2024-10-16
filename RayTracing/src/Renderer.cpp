@@ -127,23 +127,19 @@ glm::vec4 Renderer::RayGen(uint32_t x, uint32_t y) {
 
 		if (payload.HitDistance < 0.0f) {
 			glm::vec3 skyColor = glm::vec3(0.6f, 0.7f, 0.9f);
-			//light += skyColor * contribution;
+			// light += skyColor * contribution;
 			break;
 		}
 
 		glm::vec3 lightDirection = glm::normalize(m_ActiveScene->Light.Direction);
-		float lightIntensity = glm::max(glm::dot(payload.WorldNormal, -lightDirection), 0.0f); // == cos(angle)
+		// float lightIntensity = glm::max(glm::dot(payload.WorldNormal, -lightDirection), 0.0f); // == cos(angle)
 		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
 		const Material& material = m_ActiveScene->Materials[sphere.MaterialIndex];
-
-		//glm::vec3 sphereColor = material.Albedo * lightIntensity;
-		//color += sphereColor * multiplier;
 
 		contribution *= material.Albedo;
 		light += material.GetEmission();
 
 		ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
-		//ray.Direction = glm::reflect(ray.Direction, payload.WorldNormal + material.Roughness * Walnut::Random::Vec3(-0.5f, 0.5f));
 
 		if (m_Settings.PCHRandom) {
 			ray.Direction = glm::normalize(payload.WorldNormal + Utils::RandomInUnitSphere(seed));

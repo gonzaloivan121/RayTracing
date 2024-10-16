@@ -11,16 +11,17 @@ project "RayTracing"
    {
       "../Walnut/vendor/imgui",
       "../Walnut/vendor/glfw/include",
-      "../Walnut/vendor/glm",
 
-      "../Walnut/Walnut/src",
+      "../Walnut/Walnut/Source",
+      "../Walnut/Walnut/Platform/GUI",
 
       "%{IncludeDir.VulkanSDK}",
+      "../Walnut/vendor/glm",
    }
 
    links
    {
-       "Walnut"
+      "Walnut"
    }
 
    targetdir ("../bin/" .. outputdir .. "/%{prj.name}")
