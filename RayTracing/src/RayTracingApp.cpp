@@ -143,7 +143,7 @@ public:
 			ImGui::BeginChild("Material", ImVec2(0, 242), true);
 			Material& material = m_Scene.Materials[i];
 			ImGui::ColorEdit3("Albedo", glm::value_ptr(material.Albedo));
-			ImGui::SliderFloat("Rougness", &material.Roughness, 0.0f, 1.0f);
+			ImGui::SliderFloat("Roughness", &material.Roughness, 0.0f, 1.0f);
 			ImGui::SliderFloat("Metallic", &material.Metallic, 0.0f, 1.0f);
 			ImGui::ColorEdit3("Emission Color", glm::value_ptr(material.EmissionColor));
 			ImGui::DragFloat("Emission Power", &material.EmissionPower, 0.01f, 0.0f, std::numeric_limits<float>::max());
