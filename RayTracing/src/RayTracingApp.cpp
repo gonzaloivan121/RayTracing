@@ -16,56 +16,17 @@
 class RayTracingLayer : public Walnut::Layer {
 public:
 	RayTracingLayer() : m_Camera(45.0f, 0.1f, 1000.0f) {
-		Walnut::Application::Get().SetWindowTitle("Ray Tracing - " + m_Scene.Name);
-
-		Material& pinkSphere = m_Scene.Materials.emplace_back();
-		pinkSphere.Albedo = Color::Magenta;
-		pinkSphere.Roughness = 0.0f;
-
-		Material& blueSphere = m_Scene.Materials.emplace_back();
-		blueSphere.Albedo = Color::Blue;
-		blueSphere.Roughness = 0.1f;
-
-		Material& orangeSphere = m_Scene.Materials.emplace_back();
-		orangeSphere.Albedo = Color::Orange;
-		orangeSphere.Roughness = 0.1f;
-		orangeSphere.EmissionColor = orangeSphere.Albedo;
-		orangeSphere.EmissionPower = 1000.0f;
-
-		{
-			// Magenta
-			Sphere sphere;
-			sphere.Position = { -1.0f, 0.0f, 0.0f };
-			sphere.Radius = 1.0f;
-			sphere.MaterialIndex = 0;
-			m_Scene.Spheres.push_back(sphere);
-		}
-
-		{
-			// Orange
-			Sphere sphere;
-			sphere.Position = { 3000.0f, 2000.0f, -10000.0f };
-			sphere.Radius = 1000.0f;
-			sphere.MaterialIndex = 2;
-			m_Scene.Spheres.push_back(sphere);
-		}
-
-		{
-			// Blue
-			Sphere sphere;
-			sphere.Position = { 0.0f, -101.0f, 0.0f };
-			sphere.Radius = 100.0f;
-			sphere.MaterialIndex = 1;
-			m_Scene.Spheres.push_back(sphere);
-		}
-
-		m_Scene.Lights.emplace_back();
+		LoadDefaultScene();
 	}
 
 	virtual void OnUpdate(float ts) override {
-		if (m_Camera.OnUpdate(ts)) {
+		if (m_Camera.OnUpdate(ts, m_ViewportFocused)) {
 			ResetFrameIndex();
 		}
+
+		/*if (m_LoadedScene != m_Scene) {
+
+		}*/
 	}
 
 	virtual void OnUIRender() override {
@@ -178,6 +139,8 @@ public:
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::Begin("Viewport");
 
+		m_ViewportFocused = ImGui::IsWindowFocused();
+
 		m_ViewportWidth = ImGui::GetContentRegionAvail().x;
 		m_ViewportHeight = ImGui::GetContentRegionAvail().y;
 
@@ -274,12 +237,22 @@ public:
 
 	void SaveScene() {
 		SceneSerializer serializer(m_Scene);
-		serializer.Serialize(m_Scene.Name + ".yaml");
+		serializer.Serialize("scenes/" + m_Scene.Name + ".yaml");
 	}
 
 	void LoadScene() {
 		SceneSerializer serializer(m_Scene);
-		serializer.Deserialize(m_Scene.Name + ".yaml");
+		serializer.Deserialize("scenes/" + m_Scene.Name + ".yaml");
+		m_LoadedScene = m_Scene;
+		Walnut::Application::Get().SetWindowTitle(Walnut::Application::Get().GetSpecification().Name + " - " + m_Scene.Name);
+		ResetFrameIndex();
+	}
+
+	void LoadDefaultScene() {
+		SceneSerializer serializer(m_Scene);
+		serializer.Deserialize("scenes/Default.yaml");
+		m_LoadedScene = m_Scene;
+		Walnut::Application::Get().SetWindowTitle(Walnut::Application::Get().GetSpecification().Name + " - " + m_Scene.Name);
 		ResetFrameIndex();
 	}
 
@@ -291,11 +264,13 @@ private:
 	Renderer m_Renderer;
 	Camera m_Camera;
 	Scene m_Scene;
+	Scene m_LoadedScene;
 	uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
 	float m_LastRenderTime = 0.0f;
 
 	bool m_AboutModalOpen = false;
+	bool m_ViewportFocused = false;
 };
 
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {

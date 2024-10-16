@@ -16,13 +16,17 @@ Camera::Camera(float verticalFOV, float nearClip, float farClip)
 	m_Position = glm::vec3(0.0f, 0.0f, 6.0f);
 }
 
-bool Camera::OnUpdate(float ts) {
+bool Camera::OnUpdate(float ts, bool viewportFocused) {
 	glm::vec2 mousePos = Input::GetMousePosition();
 	glm::vec2 delta = (mousePos - m_LastMousePosition) * 0.002f;
 	m_LastMousePosition = mousePos;
 
 	if (!Input::IsMouseButtonDown(MouseButton::Right)) {
 		Input::SetCursorMode(CursorMode::Normal);
+		return false;
+	}
+
+	if (!viewportFocused) {
 		return false;
 	}
 
