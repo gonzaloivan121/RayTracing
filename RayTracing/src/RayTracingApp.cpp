@@ -24,24 +24,66 @@ public:
 			ResetFrameIndex();
 		}
 
-		/*if (m_LoadedScene != m_Scene) {
+		m_UnsavedChanges = CheckForChanges();
+	}
 
-		}*/
+	bool CheckForChanges() {
+		if (m_LoadedScene.Name != m_Scene.Name) {
+			return true;
+		}
+
+		if (!(m_LoadedScene.Sky == m_Scene.Sky)) {
+			return true;
+		}
+
+		if (m_LoadedScene.Lights.size() != m_Scene.Lights.size()) {
+			return true;
+		}
+
+		for (size_t i; i < m_LoadedScene.Lights.size(); i++) {
+			if (!(m_LoadedScene.Lights[i] == m_Scene.Lights[i])) {
+				return true;
+			}
+		}
+
+		if (m_LoadedScene.Spheres.size() != m_Scene.Spheres.size()) {
+			return true;
+		}
+
+		for (size_t i; i < m_LoadedScene.Spheres.size(); i++) {
+			if (!(m_LoadedScene.Spheres[i] == m_Scene.Spheres[i])) {
+				return true;
+			}
+		}
+
+		if (m_LoadedScene.Materials.size() != m_Scene.Materials.size()) {
+			return true;
+		}
+
+		for (size_t i; i < m_LoadedScene.Materials.size(); i++) {
+			if (!(m_LoadedScene.Materials[i] == m_Scene.Materials[i])) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	virtual void OnUIRender() override {
 		ImGui::Begin("Stats");
 		ImGui::BeginChild("Stats", ImVec2(0, 0), true);
 		ImGui::Text("Last render: %.3fms", m_LastRenderTime);
+		ImGui::Text("FPS: %.0f", ImGui::GetIO().Framerate);
 		ImGui::Text("Accumulated frames: %i", m_Renderer.GetFrameIndex());
 		ImGui::EndChild();
 		ImGui::End();
 
 		ImGui::Begin("Settings");
-		ImGui::BeginChild("Settings", ImVec2(0, 128), true);
+		ImGui::BeginChild("Settings", ImVec2(0, 166), true);
 		ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulate);
 		ImGui::Checkbox("Multithreading", &m_Renderer.GetSettings().Multithreading);
 		ImGui::Checkbox("PCH Random", &m_Renderer.GetSettings().PCHRandom);
+		ImGui::DragInt("Ray Bounces", &m_Renderer.GetSettings().RayBounces, 1, 1, std::numeric_limits<int>::max());
 		ImGui::EndChild();
 
 		if (ImGui::Button("Reset Accumulation")) {
@@ -49,22 +91,44 @@ public:
 		}
 		ImGui::End();
 
-		ImGui::Begin("Scene");
+		ImGuiWindowFlags windowFlags = 0;
+		if (m_UnsavedChanges) {
+			windowFlags |= ImGuiWindowFlags_UnsavedDocument;
+		} else {
+			windowFlags = 0;
+		}
 
-		// Light
-		ImGui::Text("Light");
+		ImGui::Begin("Scene", NULL, windowFlags);
+
+		// Sky
+		ImGui::Separator();
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Sky");
+		ImGui::Separator();
+
+		ImGui::BeginChild("Sky##Settings", ImVec2(0, 90), true);
+		Sky& sky = m_Scene.Sky;
+		ImGui::Checkbox("Enabled", &sky.Enabled);
+		ImGui::ColorEdit3("Color", glm::value_ptr(sky.Color));
+		ImGui::EndChild();
+
+		// Lights
+		ImGui::Separator();
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Lights");
 		ImGui::SameLine();
 		Walnut::UI::ShiftCursorX(ImGui::GetColumnWidth() - 50.0f);
-
 		if (ImGui::Button("Add##Light")) {
 			AddLight();
 		}
+		ImGui::Separator();
 
 		for (size_t i = 0; i < m_Scene.Lights.size(); i++) {
 			ImGui::PushID(i);
 
-			ImGui::BeginChild("Light", ImVec2(0, 90), true);
+			ImGui::BeginChild("Light", ImVec2(0, 128), true);
 			Light& light = m_Scene.Lights[i];
+			ImGui::Checkbox("Enabled", &light.Enabled);
 			ImGui::DragFloat3("Direction", glm::value_ptr(light.Direction), 0.01f);
 			if (ImGui::Button("Remove", ImGui::GetContentRegionAvail())) {
 				RemoveLight(i);
@@ -74,27 +138,37 @@ public:
 			ImGui::PopID();
 		}
 
-		ImGui::Spacing();
-		ImGui::Separator();
-		ImGui::Spacing();
-
 		// Spheres
+		ImGui::Separator();
+		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Spheres");
 		ImGui::SameLine();
 		Walnut::UI::ShiftCursorX(ImGui::GetColumnWidth() - 50.0f);
-
 		if (ImGui::Button("Add##Sphere")) {
 			AddSphere();
 		}
+		ImGui::Separator();
 
 		for (size_t i = 0; i < m_Scene.Spheres.size(); i++) {
 			ImGui::PushID(i);
 
-			ImGui::BeginChild("Sphere", ImVec2(0, 166), true);
+			ImGui::BeginChild("Sphere", ImVec2(0, 204), true);
 			Sphere& sphere = m_Scene.Spheres[i];
+			ImGui::Checkbox("Enabled", &sphere.Enabled);
 			ImGui::DragFloat3("Position", glm::value_ptr(sphere.Position), 0.01f);
 			ImGui::DragFloat("Radius", &sphere.Radius, 0.01f);
-			ImGui::DragInt("Material", &sphere.MaterialIndex, 1.0f, 0, (int)m_Scene.Materials.size() - 1);
+			if (ImGui::BeginCombo("Material", m_Scene.Materials[sphere.MaterialIndex].Name.c_str())) {
+				for (size_t j = 0; j < m_Scene.Materials.size(); j++) {
+					bool isSelected = m_Scene.Materials[sphere.MaterialIndex] == m_Scene.Materials[j];
+					if (ImGui::Selectable(m_Scene.Materials[j].Name.c_str(), isSelected)) {
+						sphere.MaterialIndex = j;
+					}
+					if (isSelected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
 			if (ImGui::Button("Remove", ImGui::GetContentRegionAvail())) {
 				RemoveSphere(i);
 			}
@@ -103,24 +177,23 @@ public:
 			ImGui::PopID();
 		}
 
-		ImGui::Spacing();
-		ImGui::Separator();
-		ImGui::Spacing();
-
 		// Materials
+		ImGui::Separator();
+		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Materials");
 		ImGui::SameLine();
 		Walnut::UI::ShiftCursorX(ImGui::GetColumnWidth() - 50.0f);
-
 		if (ImGui::Button("Add##Material")) {
 			AddMaterial();
 		}
+		ImGui::Separator();
 
 		for (size_t i = 0; i < m_Scene.Materials.size(); i++) {
 			ImGui::PushID(i);
 
-			ImGui::BeginChild("Material", ImVec2(0, 242), true);
+			ImGui::BeginChild("Material", ImVec2(0, 280), true);
 			Material& material = m_Scene.Materials[i];
+			ImGui::InputText("Name", material.Name.data(), sizeof(std::string) * 8);
 			ImGui::ColorEdit3("Albedo", glm::value_ptr(material.Albedo));
 			ImGui::SliderFloat("Roughness", &material.Roughness, 0.0f, 1.0f);
 			ImGui::SliderFloat("Metallic", &material.Metallic, 0.0f, 1.0f);
@@ -235,16 +308,24 @@ public:
 		m_LastRenderTime = timer.ElapsedMillis();
 	}
 
+	void NewScene() {
+		m_Scene = Scene();
+		m_LoadedScene = m_Scene;
+		Walnut::Application::Get().SetWindowTitle("Ray Tracing - " + m_Scene.Name);
+		ResetFrameIndex();
+	}
+
 	void SaveScene() {
 		SceneSerializer serializer(m_Scene);
 		serializer.Serialize("scenes/" + m_Scene.Name + ".yaml");
+		m_LoadedScene = m_Scene;
 	}
 
 	void LoadScene() {
 		SceneSerializer serializer(m_Scene);
 		serializer.Deserialize("scenes/" + m_Scene.Name + ".yaml");
 		m_LoadedScene = m_Scene;
-		Walnut::Application::Get().SetWindowTitle(Walnut::Application::Get().GetSpecification().Name + " - " + m_Scene.Name);
+		Walnut::Application::Get().SetWindowTitle("Ray Tracing - " + m_Scene.Name);
 		ResetFrameIndex();
 	}
 
@@ -252,7 +333,7 @@ public:
 		SceneSerializer serializer(m_Scene);
 		serializer.Deserialize("scenes/Default.yaml");
 		m_LoadedScene = m_Scene;
-		Walnut::Application::Get().SetWindowTitle(Walnut::Application::Get().GetSpecification().Name + " - " + m_Scene.Name);
+		Walnut::Application::Get().SetWindowTitle("Ray Tracing - " + m_Scene.Name);
 		ResetFrameIndex();
 	}
 
@@ -271,6 +352,7 @@ private:
 
 	bool m_AboutModalOpen = false;
 	bool m_ViewportFocused = false;
+	bool m_UnsavedChanges = false;
 };
 
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
@@ -287,6 +369,9 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
 	app->PushLayer(rayTracingLayer);
 	app->SetMenubarCallback([app, rayTracingLayer]() {
 		if (ImGui::BeginMenu("File")) {
+			if (ImGui::MenuItem("New")) {
+				rayTracingLayer->NewScene();
+			}
 			if (ImGui::MenuItem("Save")) {
 				rayTracingLayer->SaveScene();
 			}

@@ -44,6 +44,7 @@ bool SceneSerializer::Serialize(const std::filesystem::path & filepath) {
 			out << YAML::BeginMap; // Scene
 			out << YAML::Key << "Name" << YAML::Value << m_Scene.Name;
 			{
+				SerializeSky(out);
 				SerializeLights(out);
 				SerializeSpheres(out);
 				SerializeMaterials(out);			
@@ -57,6 +58,13 @@ bool SceneSerializer::Serialize(const std::filesystem::path & filepath) {
 	fout << out.c_str();
 	
 	return true;
+}
+
+void SceneSerializer::SerializeSky(YAML::Emitter& out) {
+	out << YAML::Key << "Sky" << YAML::Value << YAML::BeginMap;
+	out << YAML::Key << "Enabled" << YAML::Value << m_Scene.Sky.Enabled;
+	out << YAML::Key << "Color" << YAML::Value << m_Scene.Sky.Color;
+	out << YAML::EndMap;
 }
 
 void SceneSerializer::SerializeLights(YAML::Emitter& out) {
@@ -87,6 +95,7 @@ void SceneSerializer::SerializeLight(YAML::Emitter& out, const Light& light) {
 	out << YAML::BeginMap;
 	out << YAML::Key << "Light" << YAML::Value;
 	out << YAML::BeginMap;
+	out << YAML::Key << "Enabled" << YAML::Value << light.Enabled;
 	out << YAML::Key << "Direction" << YAML::Value << light.Direction;
 	out << YAML::EndMap;
 	out << YAML::EndMap;
@@ -96,6 +105,7 @@ void SceneSerializer::SerializeSphere(YAML::Emitter& out, const Sphere& sphere) 
 	out << YAML::BeginMap;
 	out << YAML::Key << "Sphere" << YAML::Value;
 	out << YAML::BeginMap;
+	out << YAML::Key << "Enabled" << YAML::Value << sphere.Enabled;
 	out << YAML::Key << "Position" << YAML::Value << sphere.Position;
 	out << YAML::Key << "Radius" << YAML::Value << sphere.Radius;
 	out << YAML::Key << "MaterialIndex" << YAML::Value << sphere.MaterialIndex;
@@ -107,6 +117,7 @@ void SceneSerializer::SerializeMaterial(YAML::Emitter& out, const Material& mate
 	out << YAML::BeginMap;
 	out << YAML::Key << "Material" << YAML::Value;
 	out << YAML::BeginMap;
+	out << YAML::Key << "Name" << YAML::Value << material.Name;
 	out << YAML::Key << "Albedo" << YAML::Value << material.Albedo;
 	out << YAML::Key << "Roughness" << YAML::Value << material.Roughness;
 	out << YAML::Key << "Metallic" << YAML::Value << material.Metallic;
@@ -135,11 +146,20 @@ bool SceneSerializer::Deserialize(const std::filesystem::path& filepath) {
 	m_Scene.Spheres.clear();
 	m_Scene.Materials.clear();
 
+	DeserializeSky(sceneNode);
 	DeserializeLights(sceneNode);
 	DeserializeSpheres(sceneNode);
 	DeserializeMaterials(sceneNode);
 
 	return true;
+}
+
+void SceneSerializer::DeserializeSky(YAML::Node& sceneNode) {
+	auto& skyNode = sceneNode["Sky"];
+	if (skyNode) {
+		m_Scene.Sky.Enabled = skyNode["Enabled"].as<bool>();
+		m_Scene.Sky.Color = skyNode["Color"].as<glm::vec3>();
+	}
 }
 
 void SceneSerializer::DeserializeLights(YAML::Node& sceneNode) {
@@ -172,12 +192,14 @@ void SceneSerializer::DeserializeMaterials(YAML::Node& sceneNode) {
 void SceneSerializer::DeserializeLight(YAML::Node& lightNode) {
 	auto& light = lightNode["Light"];
 	Light& newLight = m_Scene.Lights.emplace_back();
+	newLight.Enabled = light["Enabled"].as<bool>();
 	newLight.Direction = light["Direction"].as<glm::vec3>();
 }
 
 void SceneSerializer::DeserializeSphere(YAML::Node& sphereNode) {
 	auto& sphere = sphereNode["Sphere"];
 	Sphere& newSphere = m_Scene.Spheres.emplace_back();
+	newSphere.Enabled = sphere["Enabled"].as<bool>();
 	newSphere.Position = sphere["Position"].as<glm::vec3>();
 	newSphere.Radius = sphere["Radius"].as<float>();
 	newSphere.MaterialIndex = sphere["MaterialIndex"].as<int>();
@@ -186,6 +208,7 @@ void SceneSerializer::DeserializeSphere(YAML::Node& sphereNode) {
 void SceneSerializer::DeserializeMaterial(YAML::Node& materialNode) {
 	auto& material = materialNode["Material"];
 	Material& newMaterial = m_Scene.Materials.emplace_back();
+	newMaterial.Name = material["Name"].as<std::string>();
 	newMaterial.Albedo = material["Albedo"].as<glm::vec3>();
 	newMaterial.Roughness = material["Roughness"].as<float>();
 	newMaterial.Metallic = material["Metallic"].as<float>();

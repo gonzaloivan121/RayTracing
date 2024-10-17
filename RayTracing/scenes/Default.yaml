@@ -1,35 +1,45 @@
 Scene:
   Name: Default
+  Sky:
+    Enabled: true
+    Color: [0.600000024, 0.699999988, 0.899999976]
   Lights:
     - Light:
+        Enabled: true
         Direction: [-1, -1, -1]
   Spheres:
     - Sphere:
+        Enabled: true
         Position: [-1, 0, 0]
         Radius: 1
         MaterialIndex: 0
     - Sphere:
+        Enabled: true
         Position: [3000, 2000, -10000]
         Radius: 1000
         MaterialIndex: 2
     - Sphere:
+        Enabled: true
         Position: [0, -101, 0]
         Radius: 100
         MaterialIndex: 1
   Materials:
     - Material:
+        Name: Fuchsia Material
         Albedo: [1, 0, 1]
         Roughness: 0
         Metallic: 0
         EmissionColor: [0, 0, 0]
         EmissionPower: 0
     - Material:
+        Name: Blue Material
         Albedo: [0, 0, 1]
         Roughness: 0.100000001
         Metallic: 0
         EmissionColor: [0, 0, 0]
         EmissionPower: 0
     - Material:
+        Name: Sun Material
         Albedo: [0.800000012, 0.5, 0.200000003]
         Roughness: 0.100000001
         Metallic: 0

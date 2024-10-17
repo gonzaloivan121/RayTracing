@@ -119,25 +119,27 @@ glm::vec4 Renderer::RayGen(uint32_t x, uint32_t y) {
 	uint32_t seed = x + y * m_FinalImage->GetWidth();
 	seed *= m_FrameIndex;
 
-	int bounces = 50;
-	for (int i = 0; i < bounces; i++) {
+	for (int i = 0; i < m_Settings.RayBounces; i++) {
 		seed += i;
 
 		Renderer::HitPayload payload = TraceRay(ray);
 
 		if (payload.HitDistance < 0.0f) {
-			glm::vec3 skyColor = glm::vec3(0.6f, 0.7f, 0.9f);
-			// light += skyColor * contribution;
+			if (m_ActiveScene->Sky.Enabled) {
+				light += m_ActiveScene->Sky.Color * contribution;
+			}
 			break;
 		}
 
-		glm::vec3 lightDirection = glm::normalize(m_ActiveScene->Lights[0].Direction);
+		// glm::vec3 lightDirection = glm::normalize(m_ActiveScene->Lights[0].Direction);
 		// float lightIntensity = glm::max(glm::dot(payload.WorldNormal, -lightDirection), 0.0f); // == cos(angle)
 		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
-		const Material& material = m_ActiveScene->Materials[sphere.MaterialIndex];
 
-		contribution *= material.Albedo;
-		light += material.GetEmission();
+		if (m_ActiveScene->Materials.size() > 0) {
+			const Material& material = m_ActiveScene->Materials[sphere.MaterialIndex];
+			contribution *= material.Albedo;
+			light += material.GetEmission();
+		}
 
 		ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
 
@@ -164,6 +166,11 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray) {
 
 	for (size_t i = 0; i < m_ActiveScene->Spheres.size(); i++) {
 		const Sphere& sphere = m_ActiveScene->Spheres[i];
+
+		if (!sphere.Enabled) {
+			continue;
+		}
+
 		glm::vec3 origin = ray.Origin - sphere.Position;
 
 		float a = glm::dot(ray.Direction, ray.Direction);

@@ -15,6 +15,8 @@ public:
 		bool Accumulate = true;
 		bool Multithreading = true;
 		bool PCHRandom = true;
+
+		int RayBounces = 5;
 	};
 public:
 	Renderer() = default;
