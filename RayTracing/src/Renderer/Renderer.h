@@ -29,6 +29,8 @@ public:
 	void ResetFrameIndex() { m_FrameIndex = 1; }
 	int GetFrameIndex() { return m_FrameIndex; }
 	Settings& GetSettings() { return m_Settings; }
+
+	const uint32_t* GetImageData() const { return m_ImageData; }
 private:
 	struct HitPayload {
 		float HitDistance;

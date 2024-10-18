@@ -40,7 +40,7 @@ public:
 			return true;
 		}
 
-		for (size_t i; i < m_LoadedScene.Lights.size(); i++) {
+		for (size_t i = 0; i < m_LoadedScene.Lights.size(); i++) {
 			if (!(m_LoadedScene.Lights[i] == m_Scene.Lights[i])) {
 				return true;
 			}
@@ -50,7 +50,7 @@ public:
 			return true;
 		}
 
-		for (size_t i; i < m_LoadedScene.Spheres.size(); i++) {
+		for (size_t i = 0; i < m_LoadedScene.Spheres.size(); i++) {
 			if (!(m_LoadedScene.Spheres[i] == m_Scene.Spheres[i])) {
 				return true;
 			}
@@ -60,7 +60,7 @@ public:
 			return true;
 		}
 
-		for (size_t i; i < m_LoadedScene.Materials.size(); i++) {
+		for (size_t i = 0; i < m_LoadedScene.Materials.size(); i++) {
 			if (!(m_LoadedScene.Materials[i] == m_Scene.Materials[i])) {
 				return true;
 			}
@@ -79,11 +79,12 @@ public:
 		ImGui::End();
 
 		ImGui::Begin("Settings");
-		ImGui::BeginChild("Settings", ImVec2(0, 166), true);
+		ImGui::BeginChild("Settings", ImVec2(0, 204), true);
 		ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulate);
 		ImGui::Checkbox("Multithreading", &m_Renderer.GetSettings().Multithreading);
 		ImGui::Checkbox("PCH Random", &m_Renderer.GetSettings().PCHRandom);
 		ImGui::DragInt("Ray Bounces", &m_Renderer.GetSettings().RayBounces, 1, 1, std::numeric_limits<int>::max());
+		ImGui::SliderInt("Resolution Scale", &m_ResolutionScale, 1, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp);
 		ImGui::EndChild();
 
 		if (ImGui::Button("Reset Accumulation")) {
@@ -99,6 +100,23 @@ public:
 		}
 
 		ImGui::Begin("Scene", NULL, windowFlags);
+
+		// Camera
+		ImGui::Separator();
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Camera");
+		ImGui::Separator();
+
+		ImGui::BeginChild("Camera##Settings", ImVec2(0, 280), true);
+		CameraData& cameraData = m_Camera.GetCameraData();
+		ImGui::DragFloat3("Position", glm::value_ptr(cameraData.Position), 0.01f);
+		ImGui::DragFloat("Vertical FOV", &cameraData.VerticalFOV, 0.01f, 1.0f, 179.0f);
+		ImGui::DragFloat("Near Clip", &cameraData.NearClip, 0.01f, 0.01f, std::numeric_limits<float>::max());
+		ImGui::DragFloat("Far Clip", &cameraData.FarClip, 0.01f, 0.01f, std::numeric_limits<float>::max());
+		ImGui::DragFloat("Normal Speed", &cameraData.NormalMovementSpeed, 0.01f, 0.0f, std::numeric_limits<float>::max());
+		ImGui::DragFloat("Fast Speed", &cameraData.FastMovementSpeed, 0.01f, 0.0f, std::numeric_limits<float>::max());
+		ImGui::DragFloat("Rotation Speed", &cameraData.RotationSpeed, 0.01f, 0.0f, std::numeric_limits<float>::max());
+		ImGui::EndChild();
 
 		// Sky
 		ImGui::Separator();
@@ -157,17 +175,19 @@ public:
 			ImGui::Checkbox("Enabled", &sphere.Enabled);
 			ImGui::DragFloat3("Position", glm::value_ptr(sphere.Position), 0.01f);
 			ImGui::DragFloat("Radius", &sphere.Radius, 0.01f);
-			if (ImGui::BeginCombo("Material", m_Scene.Materials[sphere.MaterialIndex].Name.c_str())) {
-				for (size_t j = 0; j < m_Scene.Materials.size(); j++) {
-					bool isSelected = m_Scene.Materials[sphere.MaterialIndex] == m_Scene.Materials[j];
-					if (ImGui::Selectable(m_Scene.Materials[j].Name.c_str(), isSelected)) {
-						sphere.MaterialIndex = j;
+			if (m_Scene.Materials.size() > 0) {
+				if (ImGui::BeginCombo("Material", m_Scene.Materials[sphere.MaterialIndex].Name.c_str())) {
+					for (size_t j = 0; j < m_Scene.Materials.size(); j++) {
+						bool isSelected = m_Scene.Materials[sphere.MaterialIndex] == m_Scene.Materials[j];
+						if (ImGui::Selectable(m_Scene.Materials[j].Name.c_str(), isSelected)) {
+							sphere.MaterialIndex = j;
+						}
+						if (isSelected) {
+							ImGui::SetItemDefaultFocus();
+						}
 					}
-					if (isSelected) {
-						ImGui::SetItemDefaultFocus();
-					}
+					ImGui::EndCombo();
 				}
-				ImGui::EndCombo();
 			}
 			if (ImGui::Button("Remove", ImGui::GetContentRegionAvail())) {
 				RemoveSphere(i);
@@ -220,15 +240,20 @@ public:
 		auto image = m_Renderer.GetFinalImage();
 		if (image) {
 			ImGui::Image(image->GetDescriptorSet(), {
-				(float)image->GetWidth(),
-				(float)image->GetHeight()
-			}, {0, 1}, {1, 0});
+				(float)m_ViewportWidth,
+				(float)m_ViewportHeight
+			},
+			{ 0.0f, 1.0f },
+			{ 1.0f, 0.0f });
 		}
 
+		m_ViewportWidth *= (float)m_ResolutionScale * 0.01f;
+		m_ViewportHeight *= (float)m_ResolutionScale * 0.01f;
 		ImGui::End();
 		ImGui::PopStyleVar();
 
 		UI_DrawAboutModal();
+		UI_NewSceneModal();
 
 		Render();
 	}
@@ -293,6 +318,49 @@ public:
 		}
 	}
 
+	void UI_NewSceneModal() {
+		if (!m_NewSceneModalOpen) {
+			return;
+		}
+
+		ImGui::OpenPopup("New Scene");
+		m_NewSceneModalOpen = ImGui::BeginPopupModal("New Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+		if (m_NewSceneModalOpen) {
+			static char sceneName[128] = "";
+			ImGui::InputText("Name", sceneName, IM_ARRAYSIZE(sceneName));
+			bool disabled = strlen(sceneName) == 0;
+
+			if (disabled) {
+				ImGui::BeginDisabled();
+			}
+
+			if (ImGui::Button("Create", ImVec2(200, 0))) {
+				m_NewSceneModalOpen = false;
+				ImGui::CloseCurrentPopup();
+				NewScene(std::string(sceneName));
+				memset(sceneName, 0, IM_ARRAYSIZE(sceneName));
+			}
+
+			if (disabled) {
+				ImGui::EndDisabled();
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Cancel", ImVec2(200, 0))) {
+				m_NewSceneModalOpen = false;
+				ImGui::CloseCurrentPopup();
+				memset(sceneName, 0, IM_ARRAYSIZE(sceneName));
+			}
+		}
+
+		ImGui::EndPopup();
+	}
+
+	void ShowNewSceneModal() {
+		m_NewSceneModalOpen = true;
+	}
+
 	void ShowAboutModal() {
 		m_AboutModalOpen = true;
 	}
@@ -308,9 +376,9 @@ public:
 		m_LastRenderTime = timer.ElapsedMillis();
 	}
 
-	void NewScene() {
+	void NewScene(std::string& sceneName) {
 		m_Scene = Scene();
-		m_LoadedScene = m_Scene;
+		m_Scene.Name = sceneName;
 		Walnut::Application::Get().SetWindowTitle("Ray Tracing - " + m_Scene.Name);
 		ResetFrameIndex();
 	}
@@ -321,9 +389,9 @@ public:
 		m_LoadedScene = m_Scene;
 	}
 
-	void LoadScene() {
+	void LoadScene(std::string& sceneName) {
 		SceneSerializer serializer(m_Scene);
-		serializer.Deserialize("scenes/" + m_Scene.Name + ".yaml");
+		serializer.Deserialize("scenes/" + sceneName + ".yaml");
 		m_LoadedScene = m_Scene;
 		Walnut::Application::Get().SetWindowTitle("Ray Tracing - " + m_Scene.Name);
 		ResetFrameIndex();
@@ -341,6 +409,26 @@ public:
 		m_Renderer.ResetFrameIndex();
 	}
 
+	std::vector<std::string> GetAllScenes() {
+		std::vector<std::string> allScenes;
+
+		for (const auto& entry : std::filesystem::directory_iterator("scenes")) {
+			if (entry.path().extension() == ".yaml") {
+				std::string sceneName = entry.path().filename().replace_extension("").string();
+				if (sceneName != "Default") {
+					allScenes.push_back(sceneName);
+				}
+			}
+		}
+
+		return allScenes;
+	}
+
+	void ExportImage() {
+		std::string fileName = "export/" + m_Scene.Name + ".png";
+		m_Renderer.GetFinalImage()->Export(m_Renderer.GetImageData(), fileName);
+	}
+
 private:
 	Renderer m_Renderer;
 	Camera m_Camera;
@@ -350,7 +438,10 @@ private:
 
 	float m_LastRenderTime = 0.0f;
 
+	int m_ResolutionScale = 100;
+
 	bool m_AboutModalOpen = false;
+	bool m_NewSceneModalOpen = false;
 	bool m_ViewportFocused = false;
 	bool m_UnsavedChanges = false;
 };
@@ -369,17 +460,39 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
 	app->PushLayer(rayTracingLayer);
 	app->SetMenubarCallback([app, rayTracingLayer]() {
 		if (ImGui::BeginMenu("File")) {
-			if (ImGui::MenuItem("New")) {
-				rayTracingLayer->NewScene();
+			if (ImGui::MenuItem("New Scene", "Ctrl+N")) {
+				rayTracingLayer->ShowNewSceneModal();
 			}
-			if (ImGui::MenuItem("Save")) {
+			if (ImGui::MenuItem("Save Scene", "Ctrl + S")) {
 				rayTracingLayer->SaveScene();
 			}
-			if (ImGui::MenuItem("Load")) {
-				rayTracingLayer->LoadScene();
+			if (ImGui::BeginMenu("Load Scene")) {
+				if (ImGui::MenuItem("Default Scene")) {
+					rayTracingLayer->LoadDefaultScene();
+				}
+
+				ImGui::Separator();
+
+				auto& allScenes = rayTracingLayer->GetAllScenes();
+
+				for (auto& scene : allScenes) {
+					if (ImGui::MenuItem(scene.c_str())) {
+						rayTracingLayer->LoadScene(scene);
+					}
+				}
+
+				ImGui::EndMenu();
 			}
+			ImGui::Separator();
 			if (ImGui::MenuItem("Exit")) {
 				app->Close();
+			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Export")) {
+			if (ImGui::MenuItem("Image")) {
+				rayTracingLayer->ExportImage();
 			}
 			ImGui::EndMenu();
 		}

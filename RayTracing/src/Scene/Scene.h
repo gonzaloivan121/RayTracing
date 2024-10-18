@@ -32,7 +32,7 @@ struct Light {
 };
 
 struct Material {
-	std::string Name = "Material";
+	std::string Name = "Default Material";
 	glm::vec3 Albedo = Color::White;
 	float Roughness = 1.0f;
 	float Metallic = 0.0f;

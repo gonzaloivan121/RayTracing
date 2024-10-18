@@ -131,13 +131,26 @@ glm::vec4 Renderer::RayGen(uint32_t x, uint32_t y) {
 			break;
 		}
 
-		// glm::vec3 lightDirection = glm::normalize(m_ActiveScene->Lights[0].Direction);
-		// float lightIntensity = glm::max(glm::dot(payload.WorldNormal, -lightDirection), 0.0f); // == cos(angle)
+		float lightIntensity = 1.0f;
+
+		if (m_ActiveScene->Lights.size() > 0) {
+			lightIntensity = 1.0f;
+
+			for (auto& light : m_ActiveScene->Lights) {
+				if (!light.Enabled) {
+					continue;
+				}
+
+				glm::vec3 lightDirection = glm::normalize(light.Direction);
+				lightIntensity += glm::max(glm::dot(payload.WorldNormal, -lightDirection), 0.0f); // == cos(angle)
+			}
+		}
+
 		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
 
 		if (m_ActiveScene->Materials.size() > 0) {
 			const Material& material = m_ActiveScene->Materials[sphere.MaterialIndex];
-			contribution *= material.Albedo;
+			contribution *= material.Albedo * lightIntensity;
 			light += material.GetEmission();
 		}
 

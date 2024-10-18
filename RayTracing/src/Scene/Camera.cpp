@@ -6,23 +6,26 @@
 
 #include "Walnut/Input/Input.h"
 
-using namespace Walnut;
-
-Camera::Camera(float verticalFOV, float nearClip, float farClip)
-	: m_VerticalFOV(verticalFOV), m_NearClip(nearClip), m_FarClip(farClip)
-{
-	m_ForwardDirection = glm::vec3(0.0f, 0.0f, -1.0f);
-	m_UpDirection = glm::vec3(0.0f, 1.0f, 0.0f);
-	m_Position = glm::vec3(0.0f, 0.0f, 6.0f);
+Camera::Camera(float verticalFOV, float nearClip, float farClip) {
+	m_Data.VerticalFOV = verticalFOV;
+	m_Data.NearClip = nearClip;
+	m_Data.FarClip = farClip;
+	m_Data.Position = glm::vec3(0.0f, 0.0f, 6.0f);
 }
 
 bool Camera::OnUpdate(float ts, bool viewportFocused) {
-	glm::vec2 mousePos = Input::GetMousePosition();
+	glm::vec2 mousePos = Walnut::Input::GetMousePosition();
 	glm::vec2 delta = (mousePos - m_LastMousePosition) * 0.002f;
 	m_LastMousePosition = mousePos;
 
-	if (!Input::IsMouseButtonDown(MouseButton::Right)) {
-		Input::SetCursorMode(CursorMode::Normal);
+	if (m_ViewportWidth != 0 && m_ViewportHeight != 0) {
+		RecalculateView();
+		RecalculateProjection();
+		RecalculateRayDirections();
+	}
+
+	if (!Walnut::Input::IsMouseButtonDown(Walnut::MouseButton::Right)) {
+		Walnut::Input::SetCursorMode(Walnut::CursorMode::Normal);
 		return false;
 	}
 
@@ -30,47 +33,47 @@ bool Camera::OnUpdate(float ts, bool viewportFocused) {
 		return false;
 	}
 
-	Input::SetCursorMode(CursorMode::Locked);
+	Walnut::Input::SetCursorMode(Walnut::CursorMode::Locked);
 
 	bool moved = false;
 
 	glm::vec3 rightDirection = glm::cross(m_ForwardDirection, m_UpDirection);
 
-	float speed = m_NormalMovementSpeed;
+	float speed = m_Data.NormalMovementSpeed;
 
-	if (Input::IsKeyDown(KeyCode::LeftShift)) {
-		speed = m_FastMovementSpeed;
+	if (Walnut::Input::IsKeyDown(Walnut::KeyCode::LeftShift)) {
+		speed = m_Data.FastMovementSpeed;
 	}
 
 	// Movement
-	if (Input::IsKeyDown(KeyCode::W)) {
-		m_Position += m_ForwardDirection * speed * ts;
+	if (Walnut::Input::IsKeyDown(Walnut::KeyCode::W)) {
+		m_Data.Position += m_ForwardDirection * speed * ts;
 		moved = true;
-	} else if (Input::IsKeyDown(KeyCode::S)) {
-		m_Position -= m_ForwardDirection * speed * ts;
-		moved = true;
-	}
-
-	if (Input::IsKeyDown(KeyCode::A)) {
-		m_Position -= rightDirection * speed * ts;
-		moved = true;
-	} else if (Input::IsKeyDown(KeyCode::D)) {
-		m_Position += rightDirection * speed * ts;
+	} else if (Walnut::Input::IsKeyDown(Walnut::KeyCode::S)) {
+		m_Data.Position -= m_ForwardDirection * speed * ts;
 		moved = true;
 	}
 
-	if (Input::IsKeyDown(KeyCode::LeftControl)) {
-		m_Position -= m_UpDirection * speed * ts;
+	if (Walnut::Input::IsKeyDown(Walnut::KeyCode::A)) {
+		m_Data.Position -= rightDirection * speed * ts;
 		moved = true;
-	} else if (Input::IsKeyDown(KeyCode::Space)) {
-		m_Position += m_UpDirection * speed * ts;
+	} else if (Walnut::Input::IsKeyDown(Walnut::KeyCode::D)) {
+		m_Data.Position += rightDirection * speed * ts;
+		moved = true;
+	}
+
+	if (Walnut::Input::IsKeyDown(Walnut::KeyCode::LeftControl)) {
+		m_Data.Position -= m_UpDirection * speed * ts;
+		moved = true;
+	} else if (Walnut::Input::IsKeyDown(Walnut::KeyCode::Space)) {
+		m_Data.Position += m_UpDirection * speed * ts;
 		moved = true;
 	}
 
 	// Rotation
 	if (delta.x != 0.0f || delta.y != 0.0f) {
-		float pitchDelta = delta.y * GetRotationSpeed();
-		float yawDelta = delta.x * GetRotationSpeed();
+		float pitchDelta = delta.y * m_Data.RotationSpeed;
+		float yawDelta = delta.x * m_Data.RotationSpeed;
 
 		glm::quat q = glm::normalize(glm::cross(glm::angleAxis(-pitchDelta, rightDirection),
 			glm::angleAxis(-yawDelta, m_UpDirection)));
@@ -79,10 +82,10 @@ bool Camera::OnUpdate(float ts, bool viewportFocused) {
 		moved = true;
 	}
 
-	if (moved) {
+	/*if (moved) {
 		RecalculateView();
 		RecalculateRayDirections();
-	}
+	}*/
 
 	return moved;
 }
@@ -99,12 +102,12 @@ void Camera::OnResize(uint32_t width, uint32_t height) {
 }
 
 void Camera::RecalculateProjection() {
-	m_Projection = glm::perspectiveFov(glm::radians(m_VerticalFOV), (float)m_ViewportWidth, (float)m_ViewportHeight, m_NearClip, m_FarClip);
+	m_Projection = glm::perspectiveFov(glm::radians(m_Data.VerticalFOV), (float)m_ViewportWidth, (float)m_ViewportHeight, m_Data.NearClip, m_Data.FarClip);
 	m_InverseProjection = glm::inverse(m_Projection);
 }
 
 void Camera::RecalculateView() {
-	m_View = glm::lookAt(m_Position, m_Position + m_ForwardDirection, m_UpDirection);
+	m_View = glm::lookAt(m_Data.Position, m_Data.Position + m_ForwardDirection, m_UpDirection);
 	m_InverseView = glm::inverse(m_View);
 }
 

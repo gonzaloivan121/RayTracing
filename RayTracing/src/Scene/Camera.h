@@ -3,6 +3,17 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+struct CameraData {
+	glm::vec3 Position = glm::vec3(0.0f, 0.0f, 6.0f);
+	float VerticalFOV = 45.0f;
+	float NearClip = 0.1f;
+	float FarClip = 100.0f;
+
+	float NormalMovementSpeed = 5.0f;
+	float FastMovementSpeed = 10.0f;
+	float RotationSpeed = 0.3f;
+};
+
 class Camera {
 public:
 	Camera(float verticalFOV, float nearClip, float farClip);
@@ -15,37 +26,26 @@ public:
 	const glm::mat4& GetView() const { return m_View; }
 	const glm::mat4& GetInverseView() const { return m_InverseView; }
 
-	const glm::vec3& GetPosition() const { return m_Position; }
+	const glm::vec3& GetPosition() const { return m_Data.Position; }
 	const glm::vec3& GetDirection() const { return m_ForwardDirection; }
 
 	const std::vector<glm::vec3>& GetRayDirections() const { return m_RayDirections; }
 
-	float& GetVerticalFOV() { return m_VerticalFOV; }
-	float& GetNearClip() { return m_NearClip; }
-	float& GetFarClip() { return m_FarClip; }
-
-	float& GetRotationSpeed() { return m_RotationSpeed; }
+	CameraData& GetCameraData() { return m_Data; }
 private:
 	void RecalculateProjection();
 	void RecalculateView();
 	void RecalculateRayDirections();
 private:
+	CameraData m_Data;
+
 	glm::mat4 m_Projection{ 1.0f };
 	glm::mat4 m_View{ 1.0f };
 	glm::mat4 m_InverseProjection{ 1.0f };
 	glm::mat4 m_InverseView{ 1.0f };
 
-	float m_VerticalFOV = 45.0f;
-	float m_NearClip = 0.1f;
-	float m_FarClip = 100.0f;
-
-	float m_NormalMovementSpeed = 5.0f;
-	float m_FastMovementSpeed = 10.0f;
-	float m_RotationSpeed = 0.3f;
-
-	glm::vec3 m_Position{ 0.0f, 0.0f, 0.0f };
-	glm::vec3 m_ForwardDirection{ 0.0f, 0.0f, 0.0f };
-	glm::vec3 m_UpDirection{ 0.0f, 0.0f, 0.0f };
+	glm::vec3 m_ForwardDirection{ 0.0f, 0.0f, -1.0f };
+	glm::vec3 m_UpDirection{ 0.0f, 1.0f, 0.0f };
 
 	// Cached ray directions
 	std::vector<glm::vec3> m_RayDirections;
