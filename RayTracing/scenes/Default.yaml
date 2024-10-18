@@ -6,7 +6,7 @@ Scene:
   Lights:
     - Light:
         Enabled: true
-        Direction: [-1, -1, -1]
+        Position: [0, 0, 0]
   Spheres:
     - Sphere:
         Enabled: true

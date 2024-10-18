@@ -131,6 +131,8 @@ glm::vec4 Renderer::RayGen(uint32_t x, uint32_t y) {
 			break;
 		}
 
+		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
+
 		float lightIntensity = 1.0f;
 
 		if (m_ActiveScene->Lights.size() > 0) {
@@ -141,12 +143,10 @@ glm::vec4 Renderer::RayGen(uint32_t x, uint32_t y) {
 					continue;
 				}
 
-				glm::vec3 lightDirection = glm::normalize(light.Direction);
+				glm::vec3 lightDirection = glm::normalize(sphere.Position - light.Position);
 				lightIntensity += glm::max(glm::dot(payload.WorldNormal, -lightDirection), 0.0f); // == cos(angle)
 			}
 		}
-
-		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
 
 		if (m_ActiveScene->Materials.size() > 0) {
 			const Material& material = m_ActiveScene->Materials[sphere.MaterialIndex];

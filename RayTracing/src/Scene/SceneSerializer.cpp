@@ -96,7 +96,7 @@ void SceneSerializer::SerializeLight(YAML::Emitter& out, const Light& light) {
 	out << YAML::Key << "Light" << YAML::Value;
 	out << YAML::BeginMap;
 	out << YAML::Key << "Enabled" << YAML::Value << light.Enabled;
-	out << YAML::Key << "Direction" << YAML::Value << light.Direction;
+	out << YAML::Key << "Position" << YAML::Value << light.Position;
 	out << YAML::EndMap;
 	out << YAML::EndMap;
 }
@@ -193,7 +193,7 @@ void SceneSerializer::DeserializeLight(YAML::Node& lightNode) {
 	auto& light = lightNode["Light"];
 	Light& newLight = m_Scene.Lights.emplace_back();
 	newLight.Enabled = light["Enabled"].as<bool>();
-	newLight.Direction = light["Direction"].as<glm::vec3>();
+	newLight.Position = light["Position"].as<glm::vec3>();
 }
 
 void SceneSerializer::DeserializeSphere(YAML::Node& sphereNode) {

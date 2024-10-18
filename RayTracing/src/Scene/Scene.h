@@ -21,12 +21,12 @@ struct Sky {
 
 struct Light {
 	bool Enabled = true;
-	glm::vec3 Direction{ -1.0f };
+	glm::vec3 Position{ 0.0f };
 
 	bool operator==(const Light& other) {
 		return (
 			this->Enabled == other.Enabled &&
-			this->Direction == other.Direction
+			this->Position == other.Position
 		);
 	}
 };

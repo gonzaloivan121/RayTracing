@@ -147,7 +147,7 @@ public:
 			ImGui::BeginChild("Light", ImVec2(0, 128), true);
 			Light& light = m_Scene.Lights[i];
 			ImGui::Checkbox("Enabled", &light.Enabled);
-			ImGui::DragFloat3("Direction", glm::value_ptr(light.Direction), 0.01f);
+			ImGui::DragFloat3("Position", glm::value_ptr(light.Position), 0.01f);
 			if (ImGui::Button("Remove", ImGui::GetContentRegionAvail())) {
 				RemoveLight(i);
 			}
