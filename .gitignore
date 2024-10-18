@@ -11,3 +11,10 @@ bin-int/
 
 # Exclude
 !vendor/bin
+
+# Exported Images
+RayTracing/export/*
+
+# Scenes not default
+RayTracing/scenes/*
+!RayTracing/scenes/Default.yaml
