@@ -1,6 +1,7 @@
 #include "Walnut/Application.h"
 #include "Walnut/EntryPoint.h"
 
+#include "Walnut/Input/Input.h"
 #include "Walnut/Image.h"
 #include "Walnut/UI/UI.h"
 #include "Walnut/Random.h"
@@ -11,11 +12,20 @@
 #include "Utils/Color.h"
 #include "Scene/SceneSerializer.h"
 
+#include "Panels/StatsPanel.h"
+#include "Panels/SettingsPanel.h"
+#include "Panels/ScenePanel.h"
+
 #include <glm/gtc/type_ptr.hpp>
 
 class RayTracingLayer : public Walnut::Layer {
 public:
-	RayTracingLayer() : m_Camera(45.0f, 0.1f, 1000.0f) {
+	RayTracingLayer()
+		: m_Camera(45.0f, 0.1f, 1000.0f),
+		m_StatsPanel(m_Renderer, m_LastRenderTime, m_ShowStatsPanel),
+		m_SettingsPanel(m_Renderer, m_ShowSettingsPanel),
+		m_ScenePanel(m_Camera, m_Scene, m_LoadedScene, m_ShowScenePanel)
+	{
 		LoadDefaultScene();
 	}
 
@@ -24,210 +34,30 @@ public:
 			ResetFrameIndex();
 		}
 
-		m_UnsavedChanges = CheckForChanges();
-	}
+		if (Walnut::Input::IsKeyDown(Walnut::KeyCode::LeftControl)) {
+			if (Walnut::Input::IsKeyDown(Walnut::KeyCode::N)) {
+				ShowNewSceneModal();
+			}
 
-	bool CheckForChanges() {
-		if (m_LoadedScene.Name != m_Scene.Name) {
-			return true;
-		}
-
-		if (!(m_LoadedScene.Sky == m_Scene.Sky)) {
-			return true;
-		}
-
-		if (m_LoadedScene.Lights.size() != m_Scene.Lights.size()) {
-			return true;
-		}
-
-		for (size_t i = 0; i < m_LoadedScene.Lights.size(); i++) {
-			if (!(m_LoadedScene.Lights[i] == m_Scene.Lights[i])) {
-				return true;
+			if (Walnut::Input::IsKeyDown(Walnut::KeyCode::S)) {
+				SaveScene();
 			}
 		}
-
-		if (m_LoadedScene.Spheres.size() != m_Scene.Spheres.size()) {
-			return true;
-		}
-
-		for (size_t i = 0; i < m_LoadedScene.Spheres.size(); i++) {
-			if (!(m_LoadedScene.Spheres[i] == m_Scene.Spheres[i])) {
-				return true;
-			}
-		}
-
-		if (m_LoadedScene.Materials.size() != m_Scene.Materials.size()) {
-			return true;
-		}
-
-		for (size_t i = 0; i < m_LoadedScene.Materials.size(); i++) {
-			if (!(m_LoadedScene.Materials[i] == m_Scene.Materials[i])) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	virtual void OnUIRender() override {
-		ImGui::Begin("Stats");
-		ImGui::BeginChild("Stats", ImVec2(0, 0), true);
-		ImGui::Text("Last render: %.3fms", m_LastRenderTime);
-		ImGui::Text("FPS: %.0f", ImGui::GetIO().Framerate);
-		ImGui::Text("Accumulated frames: %i", m_Renderer.GetFrameIndex());
-		ImGui::EndChild();
-		ImGui::End();
+		// Stats Panel
+		m_StatsPanel.OnUIRender();
 
-		ImGui::Begin("Settings");
-		ImGui::BeginChild("Settings", ImVec2(0, 204), true);
-		ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulate);
-		ImGui::Checkbox("Multithreading", &m_Renderer.GetSettings().Multithreading);
-		ImGui::Checkbox("PCH Random", &m_Renderer.GetSettings().PCHRandom);
-		ImGui::DragInt("Ray Bounces", &m_Renderer.GetSettings().RayBounces, 1, 1, std::numeric_limits<int>::max());
-		ImGui::SliderInt("Resolution Scale", &m_ResolutionScale, 1, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp);
-		ImGui::EndChild();
-
-		if (ImGui::Button("Reset Accumulation")) {
+		// Settings Panel
+		if (m_SettingsPanel.OnUIRender()) {
 			ResetFrameIndex();
 		}
-		ImGui::End();
 
-		ImGuiWindowFlags windowFlags = 0;
-		if (m_UnsavedChanges) {
-			windowFlags |= ImGuiWindowFlags_UnsavedDocument;
-		} else {
-			windowFlags = 0;
+		// Scene Panel
+		if (m_ScenePanel.OnUIRender()) {
+			ResetFrameIndex();
 		}
-
-		ImGui::Begin("Scene", NULL, windowFlags);
-
-		// Camera
-		ImGui::Separator();
-		ImGui::AlignTextToFramePadding();
-		ImGui::Text("Camera");
-		ImGui::Separator();
-
-		ImGui::BeginChild("Camera##Settings", ImVec2(0, 280), true);
-		CameraData& cameraData = m_Camera.GetCameraData();
-		ImGui::DragFloat3("Position", glm::value_ptr(cameraData.Position), 0.01f);
-		ImGui::DragFloat("Vertical FOV", &cameraData.VerticalFOV, 0.01f, 1.0f, 179.0f);
-		ImGui::DragFloat("Near Clip", &cameraData.NearClip, 0.01f, 0.01f, std::numeric_limits<float>::max());
-		ImGui::DragFloat("Far Clip", &cameraData.FarClip, 0.01f, 0.01f, std::numeric_limits<float>::max());
-		ImGui::DragFloat("Normal Speed", &cameraData.NormalMovementSpeed, 0.01f, 0.0f, std::numeric_limits<float>::max());
-		ImGui::DragFloat("Fast Speed", &cameraData.FastMovementSpeed, 0.01f, 0.0f, std::numeric_limits<float>::max());
-		ImGui::DragFloat("Rotation Speed", &cameraData.RotationSpeed, 0.01f, 0.0f, std::numeric_limits<float>::max());
-		ImGui::EndChild();
-
-		// Sky
-		ImGui::Separator();
-		ImGui::AlignTextToFramePadding();
-		ImGui::Text("Sky");
-		ImGui::Separator();
-
-		ImGui::BeginChild("Sky##Settings", ImVec2(0, 90), true);
-		Sky& sky = m_Scene.Sky;
-		ImGui::Checkbox("Enabled", &sky.Enabled);
-		ImGui::ColorEdit3("Color", glm::value_ptr(sky.Color));
-		ImGui::EndChild();
-
-		// Lights
-		ImGui::Separator();
-		ImGui::AlignTextToFramePadding();
-		ImGui::Text("Lights");
-		ImGui::SameLine();
-		Walnut::UI::ShiftCursorX(ImGui::GetColumnWidth() - 50.0f);
-		if (ImGui::Button("Add##Light")) {
-			AddLight();
-		}
-		ImGui::Separator();
-
-		for (size_t i = 0; i < m_Scene.Lights.size(); i++) {
-			ImGui::PushID(i);
-
-			ImGui::BeginChild("Light", ImVec2(0, 128), true);
-			Light& light = m_Scene.Lights[i];
-			ImGui::Checkbox("Enabled", &light.Enabled);
-			ImGui::DragFloat3("Position", glm::value_ptr(light.Position), 0.01f);
-			if (ImGui::Button("Remove", ImGui::GetContentRegionAvail())) {
-				RemoveLight(i);
-			}
-			ImGui::EndChild();
-
-			ImGui::PopID();
-		}
-
-		// Spheres
-		ImGui::Separator();
-		ImGui::AlignTextToFramePadding();
-		ImGui::Text("Spheres");
-		ImGui::SameLine();
-		Walnut::UI::ShiftCursorX(ImGui::GetColumnWidth() - 50.0f);
-		if (ImGui::Button("Add##Sphere")) {
-			AddSphere();
-		}
-		ImGui::Separator();
-
-		for (size_t i = 0; i < m_Scene.Spheres.size(); i++) {
-			ImGui::PushID(i);
-
-			ImGui::BeginChild("Sphere", ImVec2(0, 204), true);
-			Sphere& sphere = m_Scene.Spheres[i];
-			ImGui::Checkbox("Enabled", &sphere.Enabled);
-			ImGui::DragFloat3("Position", glm::value_ptr(sphere.Position), 0.01f);
-			ImGui::DragFloat("Radius", &sphere.Radius, 0.01f);
-			if (m_Scene.Materials.size() > 0) {
-				if (ImGui::BeginCombo("Material", m_Scene.Materials[sphere.MaterialIndex].Name.c_str())) {
-					for (size_t j = 0; j < m_Scene.Materials.size(); j++) {
-						bool isSelected = m_Scene.Materials[sphere.MaterialIndex] == m_Scene.Materials[j];
-						if (ImGui::Selectable(m_Scene.Materials[j].Name.c_str(), isSelected)) {
-							sphere.MaterialIndex = j;
-						}
-						if (isSelected) {
-							ImGui::SetItemDefaultFocus();
-						}
-					}
-					ImGui::EndCombo();
-				}
-			}
-			if (ImGui::Button("Remove", ImGui::GetContentRegionAvail())) {
-				RemoveSphere(i);
-			}
-			ImGui::EndChild();
-
-			ImGui::PopID();
-		}
-
-		// Materials
-		ImGui::Separator();
-		ImGui::AlignTextToFramePadding();
-		ImGui::Text("Materials");
-		ImGui::SameLine();
-		Walnut::UI::ShiftCursorX(ImGui::GetColumnWidth() - 50.0f);
-		if (ImGui::Button("Add##Material")) {
-			AddMaterial();
-		}
-		ImGui::Separator();
-
-		for (size_t i = 0; i < m_Scene.Materials.size(); i++) {
-			ImGui::PushID(i);
-
-			ImGui::BeginChild("Material", ImVec2(0, 280), true);
-			Material& material = m_Scene.Materials[i];
-			ImGui::InputText("Name", material.Name.data(), sizeof(std::string) * 8);
-			ImGui::ColorEdit3("Albedo", glm::value_ptr(material.Albedo));
-			ImGui::SliderFloat("Roughness", &material.Roughness, 0.0f, 1.0f);
-			ImGui::SliderFloat("Metallic", &material.Metallic, 0.0f, 1.0f);
-			ImGui::ColorEdit3("Emission Color", glm::value_ptr(material.EmissionColor));
-			ImGui::DragFloat("Emission Power", &material.EmissionPower, 0.01f, 0.0f, std::numeric_limits<float>::max());
-			if (ImGui::Button("Remove", ImGui::GetContentRegionAvail())) {
-				RemoveMaterial(i);
-			}
-			ImGui::EndChild();
-
-			ImGui::PopID();
-		}
-
-		ImGui::End();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::Begin("Viewport");
@@ -247,45 +77,16 @@ public:
 			{ 1.0f, 0.0f });
 		}
 
-		m_ViewportWidth *= (float)m_ResolutionScale * 0.01f;
-		m_ViewportHeight *= (float)m_ResolutionScale * 0.01f;
+		m_ViewportWidth *= (float)m_Renderer.GetSettings().ResolutionScale * 0.01f;
+		m_ViewportHeight *= (float)m_Renderer.GetSettings().ResolutionScale * 0.01f;
 		ImGui::End();
 		ImGui::PopStyleVar();
 
 		UI_DrawAboutModal();
 		UI_NewSceneModal();
+		UI_ControlsModal();
 
 		Render();
-	}
-
-	void AddLight() {
-		m_Scene.Lights.emplace_back();
-		ResetFrameIndex();
-	}
-
-	void RemoveLight(size_t& index) {
-		m_Scene.Lights.erase(m_Scene.Lights.begin() + index);
-		ResetFrameIndex();
-	}
-
-	void AddSphere() {
-		m_Scene.Spheres.emplace_back();
-		ResetFrameIndex();
-	}
-
-	void RemoveSphere(size_t& index) {
-		m_Scene.Spheres.erase(m_Scene.Spheres.begin() + index);
-		ResetFrameIndex();
-	}
-
-	void AddMaterial() {
-		m_Scene.Materials.emplace_back();
-		ResetFrameIndex();
-	}
-
-	void RemoveMaterial(size_t& index) {
-		m_Scene.Materials.erase(m_Scene.Materials.begin() + index);
-		ResetFrameIndex();
 	}
 
 	void UI_DrawAboutModal() {
@@ -357,12 +158,43 @@ public:
 		ImGui::EndPopup();
 	}
 
+	void UI_ControlsModal() {
+		if (!m_ControlsModalOpen) {
+			return;
+		}
+
+		ImGui::OpenPopup("Controls");
+		m_ControlsModalOpen = ImGui::BeginPopupModal("Controls", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+		if (m_ControlsModalOpen) {
+			ImGui::BeginGroup();
+			ImGui::Text("Left click on the Viewport to focus it.");
+			ImGui::Text("While the Viewport is focused, right click on it to enter First Person Camera mode.");
+			ImGui::Text("While in First Person Camera mode, use WASD to move around, Left Control to go down and Space to go up.");
+			ImGui::Text("You can speed the camera movement up by pressing Left Shift while in First Person Camera mode.");
+			ImGui::Text("You can modify the default normal and fast camera speed on the Camera section of the Scene Panel.");
+			ImGui::EndGroup();
+
+			Walnut::UI::ShiftCursorY(20.0f);
+
+			if (Walnut::UI::ButtonCentered("Close")) {
+				m_ControlsModalOpen = false;
+				ImGui::CloseCurrentPopup();
+			}
+		}
+
+		ImGui::EndPopup();
+	}
+
 	void ShowNewSceneModal() {
 		m_NewSceneModalOpen = true;
 	}
 
 	void ShowAboutModal() {
 		m_AboutModalOpen = true;
+	}
+
+	void ShowControlsModal() {
+		m_ControlsModalOpen = true;
 	}
 
 	void Render() {
@@ -377,6 +209,7 @@ public:
 	}
 
 	void NewScene(std::string& sceneName) {
+		delete &m_LoadedScene;
 		m_Scene = Scene();
 		m_Scene.Name = sceneName;
 		Walnut::Application::Get().SetWindowTitle("Ray Tracing - " + m_Scene.Name);
@@ -425,9 +258,33 @@ public:
 	}
 
 	void ExportImage() {
-		std::string fileName = "export/" + m_Scene.Name + ".png";
-		m_Renderer.GetFinalImage()->Export(m_Renderer.GetImageData(), fileName);
+		std::filesystem::path folderPath = "export/" + m_Scene.Name + "/";
+
+		if (!std::filesystem::exists(folderPath)) {
+			std::filesystem::create_directory(folderPath);
+			m_Renderer.GetFinalImage()->Export(m_Renderer.GetImageData(), folderPath.string() + "0.png");
+
+			return;
+		}
+
+		int fileCount = 0;
+		for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
+			if (entry.path().extension() == ".png") {
+				fileCount++;
+			}
+		}
+
+		m_Renderer.GetFinalImage()->Export(m_Renderer.GetImageData(), folderPath.string() + std::to_string(fileCount) + ".png");
 	}
+
+	bool IsScenePanelShown() { return m_ShowScenePanel; }
+	void ToggleScenePanel() { m_ShowScenePanel = !m_ShowScenePanel; }
+
+	bool IsSettingsPanelShown() { return m_ShowSettingsPanel; }
+	void ToggleSettingsPanel() { m_ShowSettingsPanel = !m_ShowSettingsPanel; }
+
+	bool IsStatsPanelShown() { return m_ShowStatsPanel; }
+	void ToggleStatsPanel() { m_ShowStatsPanel = !m_ShowStatsPanel; }
 
 private:
 	Renderer m_Renderer;
@@ -436,14 +293,21 @@ private:
 	Scene m_LoadedScene;
 	uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
-	float m_LastRenderTime = 0.0f;
+	StatsPanel m_StatsPanel;
+	SettingsPanel m_SettingsPanel;
+	ScenePanel m_ScenePanel;
 
-	int m_ResolutionScale = 100;
+	float m_LastRenderTime = 0.0f;
 
 	bool m_AboutModalOpen = false;
 	bool m_NewSceneModalOpen = false;
+	bool m_ControlsModalOpen = false;
 	bool m_ViewportFocused = false;
-	bool m_UnsavedChanges = false;
+
+	bool m_ShowStatsPanel = true;
+	bool m_ShowSettingsPanel = true;
+	bool m_ShowScenePanel = true;
+	bool m_ShowViewportPanel = true;
 };
 
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
@@ -463,7 +327,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
 			if (ImGui::MenuItem("New Scene", "Ctrl+N")) {
 				rayTracingLayer->ShowNewSceneModal();
 			}
-			if (ImGui::MenuItem("Save Scene", "Ctrl + S")) {
+			if (ImGui::MenuItem("Save Scene", "Ctrl+S")) {
 				rayTracingLayer->SaveScene();
 			}
 			if (ImGui::BeginMenu("Load Scene")) {
@@ -490,6 +354,21 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
 			ImGui::EndMenu();
 		}
 
+		if (ImGui::BeginMenu("View")) {
+			if (ImGui::MenuItem("Show Scene", NULL, rayTracingLayer->IsScenePanelShown())) {
+				rayTracingLayer->ToggleScenePanel();
+			}
+
+			if (ImGui::MenuItem("Show Settings", NULL, rayTracingLayer->IsSettingsPanelShown())) {
+				rayTracingLayer->ToggleSettingsPanel();
+			}
+
+			if (ImGui::MenuItem("Show Stats", NULL, rayTracingLayer->IsStatsPanelShown())) {
+				rayTracingLayer->ToggleStatsPanel();
+			}
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::BeginMenu("Export")) {
 			if (ImGui::MenuItem("Image")) {
 				rayTracingLayer->ExportImage();
@@ -500,6 +379,10 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
 		if (ImGui::BeginMenu("Help")) {
 			if (ImGui::MenuItem("About")) {
 				rayTracingLayer->ShowAboutModal();
+			}
+
+			if (ImGui::MenuItem("Controls")) {
+				rayTracingLayer->ShowControlsModal();
 			}
 			ImGui::EndMenu();
 		}

@@ -19,6 +19,7 @@ project "RayTracing"
       "../Walnut/vendor/glm",
 
       "../Walnut/vendor/yaml-cpp/include",
+      "../Walnut/vendor/spdlog/include",
    }
 
    defines {

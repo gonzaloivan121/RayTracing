@@ -17,6 +17,7 @@ public:
 		bool PCHRandom = true;
 
 		int RayBounces = 5;
+		int ResolutionScale = 100;
 	};
 public:
 	Renderer() = default;
