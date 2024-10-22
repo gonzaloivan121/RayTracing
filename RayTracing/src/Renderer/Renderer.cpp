@@ -136,8 +136,6 @@ glm::vec4 Renderer::RayGen(uint32_t x, uint32_t y) {
 		float lightIntensity = 1.0f;
 
 		if (m_ActiveScene->Lights.size() > 0) {
-			lightIntensity = 1.0f;
-
 			for (auto& light : m_ActiveScene->Lights) {
 				if (!light.Enabled) {
 					continue;
@@ -237,7 +235,7 @@ Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int
 
 Renderer::HitPayload Renderer::Miss(const Ray& ray) {
 	Renderer::HitPayload payload;
-	payload.HitDistance = -1;
+	payload.HitDistance = -1.0f;
 
 	return payload;
 }

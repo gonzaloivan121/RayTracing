@@ -85,8 +85,29 @@ public:
 		UI_DrawAboutModal();
 		UI_NewSceneModal();
 		UI_ControlsModal();
+		UI_CloseConfirmationModal();
 
 		Render();
+	}
+
+	bool IsValidCommand(std::string& command) {
+		if (command.empty()) {
+			return false;
+		}
+
+		// Only white-space
+		if (command.find_first_not_of(" \t\n\v\f\r") == std::string::npos) {
+			return false;
+		}
+
+		// Trim if exceeds max message length
+		const int MaxMessageLength = 4096;
+		if (command.size() > MaxMessageLength) {
+			command = command.substr(0, MaxMessageLength);
+			return true;
+		}
+
+		return true;
 	}
 
 	void UI_DrawAboutModal() {
@@ -168,7 +189,7 @@ public:
 		if (m_ControlsModalOpen) {
 			ImGui::BeginGroup();
 			ImGui::Text("Left click on the Viewport to focus it.");
-			ImGui::Text("While the Viewport is focused, right click on it to enter First Person Camera mode.");
+			ImGui::Text("While the Viewport is focused, hold right click on it to enter First Person Camera mode.");
 			ImGui::Text("While in First Person Camera mode, use WASD to move around, Left Control to go down and Space to go up.");
 			ImGui::Text("You can speed the camera movement up by pressing Left Shift while in First Person Camera mode.");
 			ImGui::Text("You can modify the default normal and fast camera speed on the Camera section of the Scene Panel.");
@@ -179,6 +200,43 @@ public:
 			if (Walnut::UI::ButtonCentered("Close")) {
 				m_ControlsModalOpen = false;
 				ImGui::CloseCurrentPopup();
+			}
+		}
+
+		ImGui::EndPopup();
+	}
+
+	void UI_CloseConfirmationModal() {
+		if (!m_CloseConfirmationModalOpen) {
+			return;
+		}
+
+		ImGui::OpenPopup("Close Confirmation");
+		m_CloseConfirmationModalOpen = ImGui::BeginPopupModal("Close Confirmation", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+		if (m_CloseConfirmationModalOpen) {
+			ImGui::BeginGroup();
+			ImGui::Text("There are unsaved changes in this scene.");
+			ImGui::Text("What do you want to do?");
+			ImGui::EndGroup();
+
+			Walnut::UI::ShiftCursorY(20.0f);
+
+			if (ImGui::Button("Cancel")) {
+				m_CloseConfirmationModalOpen = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Save and Exit")) {
+				SaveScene();
+				Walnut::Application::Get().Close();
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Exit Without Saving")) {
+				Walnut::Application::Get().Close();
 			}
 		}
 
@@ -197,6 +255,10 @@ public:
 		m_ControlsModalOpen = true;
 	}
 
+	void ShowCloseConfirmationModal() {
+		m_CloseConfirmationModalOpen = true;
+	}
+
 	void Render() {
 		Walnut::Timer timer;
 
@@ -209,7 +271,6 @@ public:
 	}
 
 	void NewScene(std::string& sceneName) {
-		delete &m_LoadedScene;
 		m_Scene = Scene();
 		m_Scene.Name = sceneName;
 		Walnut::Application::Get().SetWindowTitle("Ray Tracing - " + m_Scene.Name);
@@ -286,6 +347,8 @@ public:
 	bool IsStatsPanelShown() { return m_ShowStatsPanel; }
 	void ToggleStatsPanel() { m_ShowStatsPanel = !m_ShowStatsPanel; }
 
+	const bool& AreThereUnsavedChanges() const { return m_ScenePanel.GetUnsavedChanges(); }
+
 private:
 	Renderer m_Renderer;
 	Camera m_Camera;
@@ -302,6 +365,7 @@ private:
 	bool m_AboutModalOpen = false;
 	bool m_NewSceneModalOpen = false;
 	bool m_ControlsModalOpen = false;
+	bool m_CloseConfirmationModalOpen = false;
 	bool m_ViewportFocused = false;
 
 	bool m_ShowStatsPanel = true;
@@ -317,7 +381,6 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
 	spec.IconPath = "res/logo.png";
 	spec.CustomTitlebar = true;
 	spec.CenterWindow = true;
-	spec.IconPath = "";
 
 	Walnut::Application* app = new Walnut::Application(spec);
 	std::shared_ptr<RayTracingLayer> rayTracingLayer = std::make_shared<RayTracingLayer>();
@@ -349,7 +412,11 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
 			}
 			ImGui::Separator();
 			if (ImGui::MenuItem("Exit")) {
-				app->Close();
+				if (!rayTracingLayer->AreThereUnsavedChanges()) {
+					app->Close();
+				} else {
+					rayTracingLayer->ShowCloseConfirmationModal();
+				}
 			}
 			ImGui::EndMenu();
 		}

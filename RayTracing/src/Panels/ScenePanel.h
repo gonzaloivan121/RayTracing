@@ -10,6 +10,8 @@ public:
 	ScenePanel(Camera& camera, Scene& scene, Scene& loadedScene, bool& showScenePanel);
 
 	virtual bool OnUIRender() override;
+
+	const bool& GetUnsavedChanges() const { return m_UnsavedChanges; }
 private:
 	bool CheckForChanges();
 
