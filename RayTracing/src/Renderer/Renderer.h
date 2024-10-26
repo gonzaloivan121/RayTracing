@@ -15,6 +15,9 @@ public:
 		bool Accumulate = true;
 		bool Multithreading = true;
 		bool PCHRandom = true;
+		bool UseClockTime = true;
+		bool UseFrameIndex = true;
+		bool UseRayBounces = true;
 
 		int RayBounces = 5;
 		int ResolutionScale = 100;
@@ -32,6 +35,9 @@ public:
 	Settings& GetSettings() { return m_Settings; }
 
 	const uint32_t* GetImageData() const { return m_ImageData; }
+
+	void SetTime(float time) { m_Time = time; }
+	void GetTime(float& time) { m_Time = time; }
 private:
 	struct HitPayload {
 		float HitDistance;
@@ -61,4 +67,6 @@ private:
 	glm::vec4* m_AccumulationData = nullptr;
 
 	uint32_t m_FrameIndex = 1;
+
+	float m_Time = 0.0f;
 };

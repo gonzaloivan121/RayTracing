@@ -3,6 +3,7 @@
 #include "Walnut/Random.h"
 
 #include <execution>
+#include <time.h>
 
 namespace Utils {
 	static uint32_t ConvertToRGBA(const glm::vec4& color) {
@@ -117,10 +118,19 @@ glm::vec4 Renderer::RayGen(uint32_t x, uint32_t y) {
 	glm::vec3 contribution(1.0f);
 
 	uint32_t seed = x + y * m_FinalImage->GetWidth();
-	seed *= m_FrameIndex;
+
+	if (m_Settings.UseFrameIndex) {
+		seed *= m_FrameIndex;
+	}
+
+	if (m_Settings.UseClockTime) {
+		seed *= clock();
+	}
 
 	for (int i = 0; i < m_Settings.RayBounces; i++) {
-		seed += i;
+		if (m_Settings.UseRayBounces) {
+			seed += i;
+		}
 
 		Renderer::HitPayload payload = TraceRay(ray);
 

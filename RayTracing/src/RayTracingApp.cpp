@@ -34,6 +34,8 @@ public:
 			ResetFrameIndex();
 		}
 
+		m_Renderer.SetTime(ts);
+
 		if (Walnut::Input::IsKeyDown(Walnut::KeyCode::LeftControl)) {
 			if (Walnut::Input::IsKeyDown(Walnut::KeyCode::N)) {
 				ShowNewSceneModal();

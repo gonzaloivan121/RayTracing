@@ -10,16 +10,26 @@ bool SettingsPanel::OnUIRender() {
 	bool resetFrameIndex = false;
 
 	if (m_ShowSettingsPanel) {
+		int booleanSettingsHeight = m_Renderer.GetSettings().PCHRandom ? 242 : 128;
+
 		ImGui::Begin("Settings", &m_ShowSettingsPanel);
-		ImGui::BeginChild("Settings", ImVec2(0, 204), true);
+		ImGui::BeginChild("Boolean Settings", ImVec2(0, booleanSettingsHeight), true);
 		ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulate);
 		ImGui::Checkbox("Multithreading", &m_Renderer.GetSettings().Multithreading);
-		ImGui::Checkbox("PCH Random", &m_Renderer.GetSettings().PCHRandom);
+		ImGui::Checkbox("Fast Random", &m_Renderer.GetSettings().PCHRandom);
+		if (m_Renderer.GetSettings().PCHRandom) {
+			ImGui::Checkbox("Use Clock Time", &m_Renderer.GetSettings().UseClockTime);
+			ImGui::Checkbox("Use Frame Index", &m_Renderer.GetSettings().UseFrameIndex);
+			ImGui::Checkbox("Use Ray Bounces", &m_Renderer.GetSettings().UseRayBounces);
+		}
+		ImGui::EndChild();
+
+		ImGui::BeginChild("Slider Settings", ImVec2(0, 90), true);
 		ImGui::DragInt("Ray Bounces", &m_Renderer.GetSettings().RayBounces, 1, 1, std::numeric_limits<int>::max());
 		ImGui::SliderInt("Resolution Scale", &m_Renderer.GetSettings().ResolutionScale, 1, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp);
 		ImGui::EndChild();
 
-		if (ImGui::Button("Reset Accumulation")) {
+		if (ImGui::Button("Reset Accumulation", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
 			resetFrameIndex = true;
 		}
 		ImGui::End();
