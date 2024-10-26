@@ -18,3 +18,4 @@ RayTracing/export/*
 # Scenes not default
 RayTracing/scenes/*
 !RayTracing/scenes/Default.yaml
+/RayTracing/settings/Renderer.yaml
