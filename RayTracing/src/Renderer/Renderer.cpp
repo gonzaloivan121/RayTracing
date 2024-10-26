@@ -164,7 +164,7 @@ glm::vec4 Renderer::RayGen(uint32_t x, uint32_t y) {
 
 		ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
 
-		if (m_Settings.PCHRandom) {
+		if (m_Settings.FastRandom) {
 			ray.Direction = glm::normalize(payload.WorldNormal + Utils::RandomInUnitSphere(seed));
 		} else {
 			ray.Direction = glm::normalize(payload.WorldNormal + Walnut::Random::InUnitSphere());

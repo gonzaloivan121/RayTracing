@@ -15,11 +15,11 @@ bool SettingsPanel::OnUIRender() {
 		ImGui::BeginChild("Boolean Settings", ImVec2(0, 128), true);
 		ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulate);
 		ImGui::Checkbox("Multithreading", &m_Renderer.GetSettings().Multithreading);
-		ImGui::Checkbox("Fast Random", &m_Renderer.GetSettings().PCHRandom);
+		ImGui::Checkbox("Fast Random", &m_Renderer.GetSettings().FastRandom);
 		ImGui::EndChild();
 
-		if (m_Renderer.GetSettings().PCHRandom) {
-			ImGui::BeginChild("PCH Settings", ImVec2(0, 128), true);
+		if (m_Renderer.GetSettings().FastRandom) {
+			ImGui::BeginChild("Fast Random Settings", ImVec2(0, 128), true);
 			ImGui::Checkbox("Use Clock Time", &m_Renderer.GetSettings().UseClockTime);
 			ImGui::Checkbox("Use Frame Index", &m_Renderer.GetSettings().UseFrameIndex);
 			ImGui::Checkbox("Use Ray Bounces", &m_Renderer.GetSettings().UseRayBounces);

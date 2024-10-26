@@ -14,7 +14,7 @@ public:
 	struct Settings {
 		bool Accumulate = true;
 		bool Multithreading = true;
-		bool PCHRandom = true;
+		bool FastRandom = true;
 		bool UseClockTime = true;
 		bool UseFrameIndex = true;
 		bool UseRayBounces = true;
