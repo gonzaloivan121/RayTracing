@@ -1,0 +1,9 @@
+Renderer:
+  Accumulate: false
+  Multithreading: true
+  FastRandom: true
+  UseClockTime: true
+  UseFrameIndex: true
+  UseRayBounces: true
+  RayBounces: 5
+  ResolutionScale: 75
