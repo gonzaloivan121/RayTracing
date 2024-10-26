@@ -10,7 +10,7 @@
 #include "Renderer/Renderer.h"
 #include "Scene/Camera.h"
 #include "Utils/Color.h"
-#include "Scene/SceneSerializer.h"
+#include "Scene/Serializer/SceneSerializer.h"
 
 #include "Panels/StatsPanel.h"
 #include "Panels/SettingsPanel.h"
