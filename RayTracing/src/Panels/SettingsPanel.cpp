@@ -2,14 +2,19 @@
 
 #include "Walnut/UI/UI.h"
 
+#include "../Renderer/Serializer/RendererSettingsSerializer.h"
+
 SettingsPanel::SettingsPanel(Renderer& renderer, bool& showSettingsPanel)
 	: m_Renderer(renderer), m_ShowSettingsPanel(showSettingsPanel)
-{}
+{
+	LoadRendererSettings();
+}
 
 bool SettingsPanel::OnUIRender() {
 	bool resetFrameIndex = false;
 
 	if (m_ShowSettingsPanel) {
+		LoadRendererSettings();
 
 		ImGui::Begin("Settings", &m_ShowSettingsPanel);
 		ImGui::BeginChild("Boolean Settings", ImVec2(0, 128), true);
@@ -35,7 +40,19 @@ bool SettingsPanel::OnUIRender() {
 			resetFrameIndex = true;
 		}
 		ImGui::End();
+
+		SaveRendererSettings();
 	}
 
 	return resetFrameIndex;
+}
+
+void SettingsPanel::LoadRendererSettings() {
+	RendererSettingsSerializer serializer(m_Renderer);
+	serializer.Deserialize("settings/Renderer.yaml");
+}
+
+void SettingsPanel::SaveRendererSettings() {
+	RendererSettingsSerializer serializer(m_Renderer);
+	serializer.Serialize("settings/Renderer.yaml");
 }

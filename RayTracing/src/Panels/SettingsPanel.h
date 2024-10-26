@@ -10,6 +10,9 @@ public:
 
 	virtual bool OnUIRender() override;
 private:
+	void LoadRendererSettings();
+	void SaveRendererSettings();
+private:
 	Renderer& m_Renderer;
 
 	bool& m_ShowSettingsPanel;
