@@ -10,19 +10,21 @@ bool SettingsPanel::OnUIRender() {
 	bool resetFrameIndex = false;
 
 	if (m_ShowSettingsPanel) {
-		int booleanSettingsHeight = m_Renderer.GetSettings().PCHRandom ? 242 : 128;
 
 		ImGui::Begin("Settings", &m_ShowSettingsPanel);
-		ImGui::BeginChild("Boolean Settings", ImVec2(0, booleanSettingsHeight), true);
+		ImGui::BeginChild("Boolean Settings", ImVec2(0, 128), true);
 		ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulate);
 		ImGui::Checkbox("Multithreading", &m_Renderer.GetSettings().Multithreading);
 		ImGui::Checkbox("Fast Random", &m_Renderer.GetSettings().PCHRandom);
+		ImGui::EndChild();
+
 		if (m_Renderer.GetSettings().PCHRandom) {
+			ImGui::BeginChild("PCH Settings", ImVec2(0, 128), true);
 			ImGui::Checkbox("Use Clock Time", &m_Renderer.GetSettings().UseClockTime);
 			ImGui::Checkbox("Use Frame Index", &m_Renderer.GetSettings().UseFrameIndex);
 			ImGui::Checkbox("Use Ray Bounces", &m_Renderer.GetSettings().UseRayBounces);
+			ImGui::EndChild();
 		}
-		ImGui::EndChild();
 
 		ImGui::BeginChild("Slider Settings", ImVec2(0, 90), true);
 		ImGui::DragInt("Ray Bounces", &m_Renderer.GetSettings().RayBounces, 1, 1, std::numeric_limits<int>::max());
