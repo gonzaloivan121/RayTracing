@@ -40,7 +40,7 @@ bool RendererSettingsSerializer::Deserialize(const std::filesystem::path& filepa
 	YAML::Node data;
 	try {
 		data = YAML::LoadFile(filepath.string());
-	} catch (YAML::ParserException e) {
+	} catch (YAML::Exception e) {
 		return false;
 	}
 
