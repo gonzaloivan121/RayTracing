@@ -32,7 +32,7 @@ bool SettingsPanel::OnUIRender() {
 		}
 
 		ImGui::BeginChild("Slider Settings", ImVec2(0, 90), true);
-		ImGui::DragInt("Ray Bounces", &m_Renderer.GetSettings().RayBounces, 1, 1, std::numeric_limits<int>::max());
+		ImGui::DragInt("Ray Bounces", &m_Renderer.GetSettings().RayBounces, 1, 2, std::numeric_limits<int>::max());
 		ImGui::SliderInt("Resolution Scale", &m_Renderer.GetSettings().ResolutionScale, 1, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp);
 		ImGui::EndChild();
 
