@@ -17,7 +17,6 @@ bool SettingsPanel::OnUIRender() {
 		LoadRendererSettings();
 
 		ImGui::Begin("Settings", &m_ShowSettingsPanel);
-
 		ImGui::BeginChild("Boolean Settings", ImVec2(0, 128), true);
 		ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulate);
 		ImGui::Checkbox("Multithreading", &m_Renderer.GetSettings().Multithreading);
@@ -40,7 +39,6 @@ bool SettingsPanel::OnUIRender() {
 		if (ImGui::Button("Reset Accumulation", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
 			resetFrameIndex = true;
 		}
-
 		ImGui::End();
 
 		SaveRendererSettings();
