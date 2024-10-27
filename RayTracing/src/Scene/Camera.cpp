@@ -13,7 +13,7 @@ Camera::Camera(float verticalFOV, float nearClip, float farClip) {
 	m_Data.Position = glm::vec3(0.0f, 0.0f, 6.0f);
 }
 
-bool Camera::OnUpdate(float ts, bool viewportFocused) {
+bool Camera::OnUpdate(const float& ts, const bool& viewportFocused) {
 	glm::vec2 mousePos = Walnut::Input::GetMousePosition();
 	glm::vec2 delta = (mousePos - m_LastMousePosition) * 0.002f;
 	m_LastMousePosition = mousePos;
