@@ -380,7 +380,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
 	Walnut::ApplicationSpecification spec;
 	spec.Name = "Ray Tracing";
 	// https://tomeko.net/online_tools/file_to_hex.php?lang=en
-	spec.IconPath = "res/logo.png";
+	spec.IconPath = "resources/logo.png";
 	spec.CustomTitlebar = true;
 	spec.CenterWindow = true;
 
