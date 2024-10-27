@@ -2,14 +2,14 @@
 
 #include "Walnut/UI/UI.h"
 
-ViewportPanel::ViewportPanel(Renderer& renderer, Camera& camera, bool& showViewportPanel)
-	: m_Renderer(renderer), m_Camera(camera), m_ShowViewportPanel(showViewportPanel)
+ViewportPanel::ViewportPanel(Renderer& renderer, bool& showViewportPanel)
+	: m_Renderer(renderer), m_ShowViewportPanel(showViewportPanel)
 {}
 
 bool ViewportPanel::OnUIRender() {
 	if (m_ShowViewportPanel) {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin("Viewport");
+		ImGui::Begin("Viewport", &m_ShowViewportPanel);
 
 		m_ViewportFocused = ImGui::IsWindowFocused();
 
@@ -28,6 +28,7 @@ bool ViewportPanel::OnUIRender() {
 
 		m_ViewportWidth *= (float)m_Renderer.GetSettings().ResolutionScale * 0.01f;
 		m_ViewportHeight *= (float)m_Renderer.GetSettings().ResolutionScale * 0.01f;
+
 		ImGui::End();
 		ImGui::PopStyleVar();
 	}

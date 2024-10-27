@@ -15,6 +15,7 @@
 #include "Panels/StatsPanel.h"
 #include "Panels/SettingsPanel.h"
 #include "Panels/ScenePanel.h"
+#include "Panels/ViewportPanel.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -24,13 +25,14 @@ public:
 		: m_Camera(45.0f, 0.1f, 1000.0f),
 		m_StatsPanel(m_Renderer, m_LastRenderTime, m_ShowStatsPanel),
 		m_SettingsPanel(m_Renderer, m_ShowSettingsPanel),
-		m_ScenePanel(m_Camera, m_Scene, m_LoadedScene, m_ShowScenePanel)
+		m_ScenePanel(m_Camera, m_Scene, m_LoadedScene, m_ShowScenePanel),
+		m_ViewportPanel(m_Renderer, m_ShowViewportPanel)
 	{
 		LoadDefaultScene();
 	}
 
 	virtual void OnUpdate(float ts) override {
-		if (m_Camera.OnUpdate(ts, m_ViewportFocused)) {
+		if (m_Camera.OnUpdate(ts, m_ViewportPanel.GetViewportFocused())) {
 			ResetFrameIndex();
 		}
 
@@ -61,28 +63,7 @@ public:
 			ResetFrameIndex();
 		}
 
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin("Viewport");
-
-		m_ViewportFocused = ImGui::IsWindowFocused();
-
-		m_ViewportWidth = ImGui::GetContentRegionAvail().x;
-		m_ViewportHeight = ImGui::GetContentRegionAvail().y;
-
-		auto image = m_Renderer.GetFinalImage();
-		if (image) {
-			ImGui::Image(image->GetDescriptorSet(), {
-				(float)m_ViewportWidth,
-				(float)m_ViewportHeight
-			},
-			{ 0.0f, 1.0f },
-			{ 1.0f, 0.0f });
-		}
-
-		m_ViewportWidth *= (float)m_Renderer.GetSettings().ResolutionScale * 0.01f;
-		m_ViewportHeight *= (float)m_Renderer.GetSettings().ResolutionScale * 0.01f;
-		ImGui::End();
-		ImGui::PopStyleVar();
+		m_ViewportPanel.OnUIRender();
 
 		UI_DrawAboutModal();
 		UI_NewSceneModal();
@@ -90,26 +71,6 @@ public:
 		UI_CloseConfirmationModal();
 
 		Render();
-	}
-
-	bool IsValidCommand(std::string& command) {
-		if (command.empty()) {
-			return false;
-		}
-
-		// Only white-space
-		if (command.find_first_not_of(" \t\n\v\f\r") == std::string::npos) {
-			return false;
-		}
-
-		// Trim if exceeds max message length
-		const int MaxMessageLength = 4096;
-		if (command.size() > MaxMessageLength) {
-			command = command.substr(0, MaxMessageLength);
-			return true;
-		}
-
-		return true;
 	}
 
 	void UI_DrawAboutModal() {
@@ -264,8 +225,8 @@ public:
 	void Render() {
 		Walnut::Timer timer;
 
-		m_Renderer.OnResize(m_ViewportWidth, m_ViewportHeight);
-		m_Camera.OnResize(m_ViewportWidth, m_ViewportHeight);
+		m_Renderer.OnResize(m_ViewportPanel.GetViewportWidth(), m_ViewportPanel.GetViewportHeight());
+		m_Camera.OnResize(m_ViewportPanel.GetViewportWidth(), m_ViewportPanel.GetViewportHeight());
 
 		m_Renderer.Render(m_Scene, m_Camera);
 
@@ -340,14 +301,15 @@ public:
 		m_Renderer.GetFinalImage()->Export(m_Renderer.GetImageData(), folderPath.string() + std::to_string(fileCount) + ".png");
 	}
 
-	bool IsScenePanelShown() { return m_ShowScenePanel; }
+	const bool& IsScenePanelShown() const { return m_ShowScenePanel; }
+	const bool& IsSettingsPanelShown() const { return m_ShowSettingsPanel; }
+	const bool& IsStatsPanelShown() const { return m_ShowStatsPanel; }
+	const bool& IsViewportPanelShown() const { return m_ShowViewportPanel; }
+
 	void ToggleScenePanel() { m_ShowScenePanel = !m_ShowScenePanel; }
-
-	bool IsSettingsPanelShown() { return m_ShowSettingsPanel; }
 	void ToggleSettingsPanel() { m_ShowSettingsPanel = !m_ShowSettingsPanel; }
-
-	bool IsStatsPanelShown() { return m_ShowStatsPanel; }
 	void ToggleStatsPanel() { m_ShowStatsPanel = !m_ShowStatsPanel; }
+	void ToggleViewportPanel() { m_ShowViewportPanel = !m_ShowViewportPanel; }
 
 	const bool& AreThereUnsavedChanges() const { return m_ScenePanel.GetUnsavedChanges(); }
 
@@ -356,11 +318,11 @@ private:
 	Camera m_Camera;
 	Scene m_Scene;
 	Scene m_LoadedScene;
-	uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
 	StatsPanel m_StatsPanel;
 	SettingsPanel m_SettingsPanel;
 	ScenePanel m_ScenePanel;
+	ViewportPanel m_ViewportPanel;
 
 	float m_LastRenderTime = 0.0f;
 
@@ -368,7 +330,6 @@ private:
 	bool m_NewSceneModalOpen = false;
 	bool m_ControlsModalOpen = false;
 	bool m_CloseConfirmationModalOpen = false;
-	bool m_ViewportFocused = false;
 
 	bool m_ShowStatsPanel = true;
 	bool m_ShowSettingsPanel = true;
@@ -434,6 +395,10 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv) {
 
 			if (ImGui::MenuItem("Show Stats", NULL, rayTracingLayer->IsStatsPanelShown())) {
 				rayTracingLayer->ToggleStatsPanel();
+			}
+
+			if (ImGui::MenuItem("Show Viewport", NULL, rayTracingLayer->IsViewportPanelShown())) {
+				rayTracingLayer->ToggleViewportPanel();
 			}
 			ImGui::EndMenu();
 		}
