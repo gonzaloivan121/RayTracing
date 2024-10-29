@@ -1,5 +1,7 @@
 #include "SceneSerializer.h"
 
+#include "Walnut/Core/Log.h"
+
 #include <fstream>
 
 namespace YAML {
@@ -33,9 +35,14 @@ YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v) {
 
 SceneSerializer::SceneSerializer(Scene& scene)
 	: m_Scene(scene)
-{}
+{
+	spdlog::info("SceneSerializer - Setting up SceneSerializer");
+	spdlog::info("SceneSerializer - SceneSerializer setup complete");
+}
 
 bool SceneSerializer::Serialize(const std::filesystem::path & filepath) {
+	spdlog::info("SceneSerializer - Saving Scene: {0}", m_Scene.Name);
+
 	YAML::Emitter out;
 	{
 		out << YAML::BeginMap; // Root
@@ -56,11 +63,15 @@ bool SceneSerializer::Serialize(const std::filesystem::path & filepath) {
 
 	std::ofstream fout(filepath);
 	fout << out.c_str();
+
+	spdlog::info("SceneSerializer - Saving complete");
 	
 	return true;
 }
 
 void SceneSerializer::SerializeSky(YAML::Emitter& out) {
+	spdlog::info("SceneSerializer - Saving Sky");
+
 	out << YAML::Key << "Sky" << YAML::Value << YAML::BeginMap;
 	out << YAML::Key << "Enabled" << YAML::Value << m_Scene.Sky.Enabled;
 	out << YAML::Key << "Color" << YAML::Value << m_Scene.Sky.Color;
@@ -68,6 +79,8 @@ void SceneSerializer::SerializeSky(YAML::Emitter& out) {
 }
 
 void SceneSerializer::SerializeLights(YAML::Emitter& out) {
+	spdlog::info("SceneSerializer - Saving Lights");
+
 	out << YAML::Key << "Lights" << YAML::Value << YAML::BeginSeq;
 	for (const Light& light : m_Scene.Lights) {
 		SerializeLight(out, light);
@@ -76,6 +89,8 @@ void SceneSerializer::SerializeLights(YAML::Emitter& out) {
 }
 
 void SceneSerializer::SerializeSpheres(YAML::Emitter& out) {
+	spdlog::info("SceneSerializer - Saving Spheres");
+
 	out << YAML::Key << "Spheres" << YAML::Value << YAML::BeginSeq;
 	for (const Sphere& sphere : m_Scene.Spheres) {
 		SerializeSphere(out, sphere);
@@ -84,6 +99,8 @@ void SceneSerializer::SerializeSpheres(YAML::Emitter& out) {
 }
 
 void SceneSerializer::SerializeMaterials(YAML::Emitter& out) {
+	spdlog::info("SceneSerializer - Saving Materials");
+
 	out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
 	for (const Material& material : m_Scene.Materials) {
 		SerializeMaterial(out, material);
@@ -130,8 +147,10 @@ void SceneSerializer::SerializeMaterial(YAML::Emitter& out, const Material& mate
 bool SceneSerializer::Deserialize(const std::filesystem::path& filepath) {
 	YAML::Node data;
 	try {
+		spdlog::info("SceneSerializer - Attempting to read Scene file: {0}", filepath);
 		data = YAML::LoadFile(filepath.string());
-	} catch (YAML::ParserException e) {
+	} catch (YAML::Exception e) {
+		spdlog::error("SceneSerializer - Error reading Scene file: {0}", e.msg);
 		return false;
 	}
 
@@ -142,6 +161,9 @@ bool SceneSerializer::Deserialize(const std::filesystem::path& filepath) {
 	auto sceneNode = data["Scene"];
 
 	m_Scene.Name = sceneNode["Name"].as<std::string>();
+
+	spdlog::info("SceneSerializer - Loading Scene: {0}", m_Scene.Name);
+
 	m_Scene.Lights.clear();
 	m_Scene.Spheres.clear();
 	m_Scene.Materials.clear();
@@ -151,12 +173,15 @@ bool SceneSerializer::Deserialize(const std::filesystem::path& filepath) {
 	DeserializeSpheres(sceneNode);
 	DeserializeMaterials(sceneNode);
 
+	spdlog::info("SceneSerializer - Loading complete");
+
 	return true;
 }
 
 void SceneSerializer::DeserializeSky(YAML::Node& sceneNode) {
 	auto& skyNode = sceneNode["Sky"];
 	if (skyNode) {
+		spdlog::info("SceneSerializer - Loading Sky");
 		m_Scene.Sky.Enabled = skyNode["Enabled"].as<bool>();
 		m_Scene.Sky.Color = skyNode["Color"].as<glm::vec3>();
 	}
@@ -165,6 +190,7 @@ void SceneSerializer::DeserializeSky(YAML::Node& sceneNode) {
 void SceneSerializer::DeserializeLights(YAML::Node& sceneNode) {
 	auto& lightsNode = sceneNode["Lights"];
 	if (lightsNode) {
+		spdlog::info("SceneSerializer - Loading Lights");
 		for (auto& lightNode : lightsNode) {
 			DeserializeLight(lightNode);
 		}
@@ -174,6 +200,7 @@ void SceneSerializer::DeserializeLights(YAML::Node& sceneNode) {
 void SceneSerializer::DeserializeSpheres(YAML::Node& sceneNode) {
 	auto& spheresNode = sceneNode["Spheres"];
 	if (spheresNode) {
+		spdlog::info("SceneSerializer - Loading Spheres");
 		for (auto& sphereNode : spheresNode) {
 			DeserializeSphere(sphereNode);
 		}
@@ -183,6 +210,7 @@ void SceneSerializer::DeserializeSpheres(YAML::Node& sceneNode) {
 void SceneSerializer::DeserializeMaterials(YAML::Node& sceneNode) {
 	auto& materialsNode = sceneNode["Materials"];
 	if (materialsNode) {
+		spdlog::info("SceneSerializer - Loading Materials");
 		for (auto& materialNode : materialsNode) {
 			DeserializeMaterial(materialNode);
 		}
