@@ -51,6 +51,18 @@ bool SettingsPanel::OnUIRender() {
 			resetFrameIndex = true;
 		}
 
+		ImGui::Separator();
+		ImGui::AlignTextToFramePadding();
+		Walnut::UI::TextCentered("Language");
+		ImGui::Separator();
+
+		ImGui::BeginChild("Language Settings", ImVec2(0, 52), true);
+		if (ImGui::BeginCombo("Language", m_Language.c_str())) {
+			SetupLanguageSelector();
+			ImGui::EndCombo();
+		}
+		ImGui::EndChild();
+
 		ImGui::End();
 
 		SaveRendererSettings();
@@ -67,4 +79,22 @@ void SettingsPanel::LoadRendererSettings() {
 void SettingsPanel::SaveRendererSettings() {
 	RendererSettingsSerializer serializer(m_Renderer);
 	serializer.Serialize("settings/Renderer.yaml");
+}
+
+void SettingsPanel::SetupLanguageSelector() {
+	for (const auto& entry : std::filesystem::directory_iterator("i18n")) {
+		if (entry.path().extension() == ".yaml") {
+			std::string languageName = entry.path().filename().replace_extension("").string();
+			bool isSelected = m_Language == languageName;
+
+			if (ImGui::Selectable(languageName.c_str(), isSelected)) {
+				m_Language = languageName;
+				TranslationService::Use(m_Language);
+			}
+
+			if (isSelected) {
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+	}
 }
