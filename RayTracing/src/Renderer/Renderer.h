@@ -3,8 +3,8 @@
 #include "Walnut/Image.h"
 
 #include "../Scene/Camera.h"
-#include "Ray.h"
 #include "../Scene/Scene.h"
+#include "Ray.h"
 
 #include <memory>
 #include <glm/glm.hpp>
